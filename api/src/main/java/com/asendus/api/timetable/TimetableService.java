@@ -125,6 +125,33 @@ public class TimetableService {
         return activeVersion().flatMap(v -> teacherRepository.findByVersionIdAndTeacherKey(v.getId(), TeacherKey.of(key)));
     }
 
+    /**
+     * For each active-version teacher, the distinct non-empty subject codes they teach across the whole week,
+     * sorted. Teachers with no subjects map to an empty list. Empty if there is no active version.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, List<String>> subjectsByTeacherKey() {
+        Optional<TimetableVersion> v = activeVersion();
+        if (v.isEmpty()) return Map.of();
+        List<Teacher> teachers = teacherRepository.findByVersionIdOrderByName(v.get().getId());
+        Map<Long, SortedSet<String>> byTeacher = new HashMap<>();
+        for (Lesson l : lessonRepository.findByTeacherIdIn(ids(teachers))) {
+            if (!l.getSubject().isBlank()) {
+                byTeacher.computeIfAbsent(l.getTeacherId(), id -> new TreeSet<>()).add(l.getSubject());
+            }
+        }
+        Map<String, List<String>> out = new HashMap<>();
+        for (Teacher t : teachers) {
+            out.put(t.getTeacherKey(), List.copyOf(byTeacher.getOrDefault(t.getId(), new TreeSet<>())));
+        }
+        return out;
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasActiveVersion() {
+        return activeVersion().isPresent();
+    }
+
     /** Keys of all teachers flagged as placeholders (across versions). */
     @Transactional(readOnly = true)
     public Set<String> placeholderKeys() {
