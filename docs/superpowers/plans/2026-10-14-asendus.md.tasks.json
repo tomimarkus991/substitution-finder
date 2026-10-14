@@ -127,11 +127,11 @@
     {
       "id": 15,
       "subject": "Task 15: End-to-end check",
-      "status": "in_progress",
+      "status": "completed",
       "blockedBy": [
         14
       ]
     }
   ],
-  "lastUpdated": "2026-10-14T12:03:18"
+  "lastUpdated": "2026-10-14T12:13:31"
 }
