@@ -22,7 +22,7 @@ Duty rota (korrapidamine), multiple schools, notifying teachers, editing the tim
 ## Users and access
 
 - Single school, shared data for everyone allowed in.
-- Allowlist via `ALLOWED_EMAILS` env var (comma-separated). Initial: `aili@alber.ee`, `tomimarkus@alber.ee`.
+- Allowlist via `ALLOWED_EMAILS` env var (comma-separated). Initial: `iliarebla@gmail.com`, `tomimarkusalber@gmail.com`.
 - Google sign-in exchanged for the API's JWT (same as `impulse`). Non-allowlisted email → `403 { "error": "..." }` from `POST /auth/google`.
 - `/` is public. Every other route requires login; logged-in users visiting `/` are redirected to Täna.
 
@@ -138,4 +138,4 @@ Mobile-friendly: she uses her phone (the screenshot was from a phone).
 - The starter's flow: `infra/new-app.sh <owner/repo> asendus`, Docker Hub image, Traefik, Let's Encrypt.
 - `web` deploys to Cloudflare Pages (project `asendus`) via a `deploy-web.yml` workflow using `cloudflare/wrangler-action`, like gatherr's `deploy-frontend.yml`. It needs repo secrets `CF_API_TOKEN` and `CF_ACCOUNT_ID`; the custom domain `asendus.alber.ee` is attached in the Pages dashboard.
 - `ALLOWED_EMAILS` goes in the app env.
-- Manual (Tomi): add `https://asendus.alber.ee` and `http://localhost:5173` to the shared Google web client's JavaScript origins; add `aili@alber.ee` as a Test user.
+- Manual (Tomi): add `https://asendus.alber.ee` and `http://localhost:5173` to the shared Google web client's JavaScript origins; add `iliarebla@gmail.com` as a Test user.
