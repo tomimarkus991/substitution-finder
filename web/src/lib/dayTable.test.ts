@@ -28,6 +28,19 @@ describe('day table', () => {
     ])
   })
 
+  it('puts a duty label in the subject column', () => {
+    const d: Day = { date: '2026-09-04', weekday: 5, absences: [
+      { id: 3, teacherKey: 'x y', teacherName: 'X Y', fromPeriod: 1, toPeriod: 7, rows: [
+        { id: 31, period: 3, classes: 'I klassid', subject: 'ÕVT', substituteKeys: [], substituteNames: '', freeText: '', dutyLabel: 'ÕVT 10:45–11:15 · pos 4' },
+        { id: 30, period: 2, classes: '2.3', subject: 'Ma', substituteKeys: [], substituteNames: '', freeText: '', dutyLabel: null },
+      ]},
+    ]}
+    const rows = buildRows(d)
+    expect(rows[0][5]).toBe('matemaatika')
+    expect(rows[1][2]).toBe('I klassid')
+    expect(rows[1][5]).toBe('ÕVT 10:45–11:15 · pos 4')
+  })
+
   it('renders an HTML table with the header and escapes text', () => {
     const html = toHtml([['4.09', 'A <b>', '1', '1', '', 'x']])
     expect(html).toContain('>Puuduva õpetaja nimi</th>')

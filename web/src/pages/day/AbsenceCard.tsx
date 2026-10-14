@@ -76,7 +76,11 @@ type RowProps = { date: string; row: Substitution; open: boolean; onToggle: () =
 function Row({ date, row, open, onToggle, onClose }: RowProps) {
   const text = assignment(row)
   return (
-    <li className={cn('overflow-hidden rounded-2xl border-2', open ? 'border-casual-sky-blue-outline' : 'border-slate-100')}>
+    <li className={cn(
+      'overflow-hidden rounded-2xl border-2',
+      open ? 'border-casual-sky-blue-outline' : 'border-slate-100',
+      row.dutyLabel && 'border-l-8 border-l-violet-500',
+    )}>
       <div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <span
@@ -90,7 +94,7 @@ function Row({ date, row, open, onToggle, onClose }: RowProps) {
           </span>
           <div className="min-w-0">
             <p className="font-semibold">
-              {row.classes} <span className="font-normal text-text-caption">· {subjectName(row.subject)}</span>
+              {row.classes} <span className="font-normal text-text-caption">· {row.dutyLabel ?? subjectName(row.subject)}</span>
             </p>
             <p className={cn('truncate', text ? 'font-semibold text-casual-green-darker' : 'text-text-caption')}>
               {text || 'Asendaja valimata'}

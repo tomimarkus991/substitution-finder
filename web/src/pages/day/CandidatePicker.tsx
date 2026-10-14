@@ -93,6 +93,12 @@ export default function CandidatePicker({ date, row, onClose }: Props) {
               {askFirst.map(c => <CandidateButton key={c.key} candidate={c} onClick={() => toggle(c.key)} />)}
             </Group>
           )}
+          {others.some(c => c.duties.length > 0) && (
+            <p className="flex items-center gap-2 text-sm text-text-caption">
+              <span className="h-3 w-3 rounded-full bg-violet-500" /> on sel ajal vahetunni valves
+              <InfoTip label="Vahetunni valve">Õpetajal on selle tunni ajal õue- või söögivahetunni valve. Kui ta asendab, peab valve jaoks kellegi teise leidma.</InfoTip>
+            </p>
+          )}
         </>
       )}
 
@@ -152,6 +158,9 @@ function CandidateButton({ candidate: c, onClick }: { candidate: Candidate; onCl
       )}
     >
       <span className="block font-bold">{c.name}</span>
+      {c.duties.map(d => (
+        <span key={d} className="mt-1 mr-1 inline-block rounded-full bg-violet-500 px-2 py-0.5 text-xs font-bold text-white">{d}</span>
+      ))}
       {(c.subjects.length > 0 || c.todayCount > 0) && (
         <span className="block text-xs text-text-caption">
           {c.subjects.map(subjectName).join(', ')}

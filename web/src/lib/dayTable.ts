@@ -12,7 +12,7 @@ export function buildRows(day: Day): TableRow[] {
     .flatMap(a => [...a.rows].sort((x, y) => x.period - y.period).map(r => [
       date, a.teacherName, r.classes, String(r.period),
       [r.substituteNames, r.freeText].filter(Boolean).join(' / '),
-      subjectName(r.subject),
+      r.dutyLabel ?? subjectName(r.subject),
     ]))
 }
 
