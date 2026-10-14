@@ -4,6 +4,7 @@ import { api } from '../../api/client'
 import type { Absence, TeacherSummary } from '../../api/types'
 import { Card } from '../../components/ui/Card'
 import { RealButton } from '../../components/ui/RealButton'
+import InfoTip from '../../help/InfoTip'
 
 const PERIODS = [1, 2, 3, 4, 5, 6, 7]
 const MAX_MATCHES = 8
@@ -84,6 +85,12 @@ export default function AddAbsenceForm({ date, teachers, absentKeys }: Props) {
       <div className="flex flex-wrap items-end gap-3">
         <PeriodSelect label="Alates tunnist" value={from} onChange={setFrom} />
         <PeriodSelect label="Kuni tunnini" value={to} onChange={setTo} />
+        <span className="mb-2.5">
+          <InfoTip label="Alates tunnist / Kuni tunnini">
+            Kui õpetaja puudub ainult osa päevast, märgi need tunnid. Näiteks kui ta tuleb 3. tunniks, vali 1.–2. tund.
+            Ülejäänud päeval võib ta ise asendada.
+          </InfoTip>
+        </span>
         <RealButton
           variant="sky"
           size="sm"

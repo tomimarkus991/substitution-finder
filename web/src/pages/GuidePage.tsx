@@ -3,7 +3,7 @@ import { AbsenceHelp, GoodToKnow, SubstituteHelp, TableHelp, TimetableHelp } fro
 
 export default function GuidePage() {
   return (
-    <div className="space-y-5">
+    <div className="@container space-y-5">
       <PageTitle hint="Kuidas rakendusega asendused hommikul kiiresti tehtud saada.">Õpetus</PageTitle>
       <TimetableHelp />
       <AbsenceHelp />

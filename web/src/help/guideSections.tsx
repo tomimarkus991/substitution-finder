@@ -49,7 +49,7 @@ export function SubstituteHelp() {
   return (
     <Step n={3} color="bg-casual-green" title="Vali asendajad" when="iga tunni kohta">
       <p>Vajuta tunni real <b>Vali asendaja</b>. Rakendus näitab ainult neid, kes saavad tundi anda:</p>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 @lg:grid-cols-2">
         <Legend dot="bg-casual-green" title="Vaba">
           Õpetaja on sel päeval koolis ja tal on just siis auk, või on see tund kohe pärast tema viimast tundi.
         </Legend>

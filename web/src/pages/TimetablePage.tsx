@@ -5,6 +5,7 @@ import { fetchActiveTimetable } from '../api/queries'
 import { Card } from '../components/ui/Card'
 import { PageTitle } from '../components/ui/PageTitle'
 import { cn } from '../lib/cn'
+import InfoTip from '../help/InfoTip'
 import UploadCard from './timetable/UploadCard'
 import TeacherGrid from './timetable/TeacherGrid'
 
@@ -73,6 +74,9 @@ export default function TimetablePage() {
                     className="h-5 w-5 accent-casual-sky-blue-darker"
                   />
                   Pole päris õpetaja
+                  <InfoTip label="Pole päris õpetaja">
+                    Näiteks „Puutöö“ või „Inglise keel“, kui õpetajat veel pole. Neid saab puudujaks märkida, aga asendajana ei pakuta.
+                  </InfoTip>
                 </label>
               </li>
             ))}

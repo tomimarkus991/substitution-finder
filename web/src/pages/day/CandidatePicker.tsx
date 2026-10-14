@@ -5,6 +5,7 @@ import type { Candidate, Day, Substitution } from '../../api/types'
 import { RealButton } from '../../components/ui/RealButton'
 import { cn } from '../../lib/cn'
 import { subjectName } from '../../lib/subjects'
+import InfoTip from '../../help/InfoTip'
 
 const QUICK_TEXTS = ['Koju', 'Tulevad hiljem', 'Klass kokku', 'Iseseisev töö']
 
@@ -74,11 +75,21 @@ export default function CandidatePicker({ date, row, onClose }: Props) {
       {candidates.isLoading && <p className="text-sm text-text-caption">Laen vabu õpetajaid…</p>}
       {candidates.data && (
         <>
-          <Group title="Vaba" dot="bg-casual-green" empty={free.length === 0 ? 'Vabu õpetajaid pole' : undefined}>
+          <Group
+            title="Vaba"
+            dot="bg-casual-green"
+            tip={<InfoTip label="Vaba">On sel päeval koolis ja tal on just siis auk, või on see tund kohe pärast tema viimast tundi.</InfoTip>}
+            empty={free.length === 0 ? 'Vabu õpetajaid pole' : undefined}
+          >
             {free.map(c => <CandidateButton key={c.key} candidate={c} onClick={() => toggle(c.key)} />)}
           </Group>
           {askFirst.length > 0 && (
-            <Group title="Küsi enne" hint="peaks tulema tund varem" dot="bg-casual-orange">
+            <Group
+              title="Küsi enne"
+              hint="peaks tulema tund varem"
+              dot="bg-casual-orange"
+              tip={<InfoTip label="Küsi enne">See tund on kohe enne tema esimest tundi. Ta peaks tulema tund varem, nii et lepi temaga enne kokku.</InfoTip>}
+            >
               {askFirst.map(c => <CandidateButton key={c.key} candidate={c} onClick={() => toggle(c.key)} />)}
             </Group>
           )}
@@ -111,14 +122,15 @@ export default function CandidatePicker({ date, row, onClose }: Props) {
   )
 }
 
-type GroupProps = { title: string; hint?: string; dot?: string; empty?: string; children: React.ReactNode }
+type GroupProps = { title: string; hint?: string; dot?: string; tip?: React.ReactNode; empty?: string; children: React.ReactNode }
 
-function Group({ title, hint, dot, empty, children }: GroupProps) {
+function Group({ title, hint, dot, tip, empty, children }: GroupProps) {
   return (
     <div>
       <h3 className="mb-2 flex items-center gap-2 text-sm font-bold">
         {dot && <span className={cn('h-3 w-3 rounded-full', dot)} />}
         {title}
+        {tip}
         {hint && <span className="font-normal text-text-caption">· {hint}</span>}
       </h3>
       {empty ? <p className="text-sm text-text-caption">{empty}</p> : <div className="flex flex-wrap gap-2">{children}</div>}

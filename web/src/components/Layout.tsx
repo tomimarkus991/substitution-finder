@@ -2,6 +2,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
 import { cn } from '../lib/cn'
 import { todayIso } from '../lib/dates'
+import HelpButton from '../help/HelpButton'
 import { RealButton } from './ui/RealButton'
 
 const navLink = ({ isActive }: { isActive: boolean }) =>
@@ -36,9 +37,11 @@ export default function Layout() {
           </RealButton>
         </div>
       </nav>
-      <main className="mx-auto max-w-4xl px-4 py-6">
+      {/* Bottom padding keeps the floating help button off the last buttons */}
+      <main className="mx-auto max-w-4xl px-4 pt-6 pb-24">
         <Outlet />
       </main>
+      <HelpButton />
     </>
   )
 }
