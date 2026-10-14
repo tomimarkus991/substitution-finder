@@ -1,5 +1,34 @@
 @import "tailwindcss";
 
+/* Design tokens borrowed from karatekool (tailwind.config.js), recoloured for a school */
+@theme {
+  --font-sans: "Catamaran", ui-sans-serif, system-ui, sans-serif;
+
+  --color-surface-bg: #f7f8fa;
+  --color-text-primary: #393939;
+  --color-text-caption: #6e6e6e;
+
+  --color-casual-green: #42d68c;
+  --color-casual-green-darker: #30a46a;
+  --color-casual-green-outline: #79e2ae;
+  --color-casual-orange: #ffa033;
+  --color-casual-orange-darker: #c76a2a;
+  --color-casual-orange-outline: #ffc684;
+  --color-casual-sky-blue: #59adf6;
+  --color-casual-sky-blue-darker: #2a85d4;
+  --color-casual-sky-blue-outline: #6db7f8;
+  --color-casual-red: #ff695a;
+  --color-casual-red-darker: #b92f27;
+
+  --shadow-sky: 0px 4px 12px 0 rgba(42, 133, 212, 0.3);
+}
+
+@layer base {
+  body {
+    @apply bg-surface-bg text-text-primary antialiased;
+  }
+}
+
 .print-only { display: none; }
 
 @media print {
