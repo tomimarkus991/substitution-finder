@@ -12,6 +12,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.ResultActions;
 
+import java.text.Collator;
 import java.util.*;
 import java.util.function.Predicate;
 
@@ -23,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class DayControllerTest extends IntegrationTest {
 
     static final String FRI = "2026-09-04";
+    static final Collator ET = Collator.getInstance(Locale.of("et"));
     @Autowired JdbcTemplate jdbc;
 
     @BeforeEach
@@ -201,7 +203,7 @@ class DayControllerTest extends IntegrationTest {
         postAbsence("2026-09-01", "{\"teacherKey\":\"" + a + "\"}").andExpect(status().isCreated());
 
         List<String> expected = new ArrayList<>(List.of(displayName(a), displayName(b)));
-        Collections.sort(expected);
+        expected.sort(ET);
         mockMvc.perform(get("/days/{d}", FRI).header("Authorization", bearer()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.date").value(FRI))
@@ -299,7 +301,7 @@ class DayControllerTest extends IntegrationTest {
         Comparator<Map<String, Object>> order = Comparator
                 .comparing((Map<String, Object> c) -> Availability.valueOf((String) c.get("status")))
                 .thenComparingInt(c -> ((Number) c.get("todayCount")).intValue())
-                .thenComparing(c -> (String) c.get("name"));
+                .thenComparing(c -> (String) c.get("name"), ET);
         assertThat(list).isSortedAccordingTo(order);
         assertThat(JsonPath.<List<Integer>>read(body, byKey(busy) + ".todayCount")).containsExactly(1);
         // busy is the last FREE entry since everyone else FREE has todayCount 0
@@ -406,5 +408,113 @@ class DayControllerTest extends IntegrationTest {
     @Test
     void requiresLogin() throws Exception {
         mockMvc.perform(get("/days")).andExpect(status().isUnauthorized());
+    }
+
+    // ---------- review fixes ----------
+
+    @Test
+    void malformedPathsAndParamsAre400() throws Exception {
+        mockMvc.perform(get("/days/{d}", "not-a-date").header("Authorization", bearer()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Vigane päring"));
+        mockMvc.perform(get("/days/{d}/candidates", FRI).param("period", "abc").header("Authorization", bearer()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Vigane päring"));
+        putSubstitution0("abc", "{\"substituteKeys\":[],\"freeText\":\"\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Vigane päring"));
+    }
+
+    ResultActions putSubstitution0(String rawId, String json) throws Exception {
+        return mockMvc.perform(put("/substitutions/" + rawId).header("Authorization", bearer())
+                .contentType(MediaType.APPLICATION_JSON).content(json));
+    }
+
+    @Test
+    void aTakenSubstitutionDoesNotExtendTheWorkingSpan() throws Exception {
+        // last Friday lesson is 3 → FREE in 4 (last + 1); taking 4 must not make them FREE in 5
+        String sub = first(ps -> !ps.isEmpty() && Collections.max(ps) == 3);
+        String absentKey = fridayTeachers(ps -> ps.contains(4)).stream().filter(k -> !k.equals(sub)).findFirst().orElseThrow();
+        candidates(4).andExpect(jsonPath(byKey(sub) + ".status", contains("FREE")));
+        candidates(5).andExpect(jsonPath(byKey(sub)).isEmpty());
+
+        long rowId = id(absent(absentKey, 4, 4), "$.rows[0].id");
+        putSubstitution(rowId, "{\"substituteKeys\":[\"" + sub + "\"],\"freeText\":\"\"}").andExpect(status().isOk());
+
+        candidates(5).andExpect(jsonPath(byKey(sub)).isEmpty());
+    }
+
+    @Test
+    void aSplitCellGivesTwoRowsForTheSamePeriod() throws Exception {
+        // Ambos Algi, Thursday period 5: 6M and 6R
+        postAbsence("2026-09-03", "{\"teacherKey\":\"ambos algi\",\"fromPeriod\":5,\"toPeriod\":5}")
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.rows.length()").value(2))
+                .andExpect(jsonPath("$.rows[*].period", contains(5, 5)))
+                .andExpect(jsonPath("$.rows[*].classes", containsInAnyOrder("6M", "6R")));
+    }
+
+    @Test
+    void rowsAreASnapshotThatSurvivesANewTimetable() throws Exception {
+        absent("pärnpuu taimi", null, null);
+        String before = mockMvc.perform(get("/days/{d}", FRI).header("Authorization", bearer()))
+                .andReturn().getResponse().getContentAsString();
+        Object rowsBefore = JsonPath.read(before, "$.absences[0].rows");
+
+        String upload = mockMvc.perform(multipart("/timetables")
+                        .file(new MockMultipartFile("file", "0304.pdf", "application/pdf", TestPdfs.load("opetajad-0304.pdf")))
+                        .header("Authorization", bearer()))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        mockMvc.perform(post("/timetables/{id}/activate", id(upload, "$.id")).header("Authorization", bearer()))
+                .andExpect(status().isOk());
+
+        // Even if the stored timetable changes underneath, the rows keep their copies
+        jdbc.update("update lesson set classes = 'ZZ', subject = 'ZZ'");
+
+        String after = mockMvc.perform(get("/days/{d}", FRI).header("Authorization", bearer()))
+                .andReturn().getResponse().getContentAsString();
+        assertThat((Object) JsonPath.read(after, "$.absences[0].rows")).isEqualTo(rowsBefore);
+        assertThat((Object) JsonPath.read(after, "$.absences[0].teacherName")).isEqualTo("Taimi Pärnpuu");
+    }
+
+    @Test
+    void keysAlreadyOnTheRowSurviveANewTimetable() throws Exception {
+        // Lea Teesalu is in opetajad-b but not in opetajad-0304
+        String other = fridayTeachers(ps -> !ps.isEmpty()).getFirst();
+        long rowId = id(absent("pärnpuu taimi", null, null), "$.rows[0].id");
+        putSubstitution(rowId, "{\"substituteKeys\":[\"teesalu lea\"],\"freeText\":\"\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.substituteNames").value("Lea Teesalu"));
+
+        String upload = mockMvc.perform(multipart("/timetables")
+                        .file(new MockMultipartFile("file", "0304.pdf", "application/pdf", TestPdfs.load("opetajad-0304.pdf")))
+                        .header("Authorization", bearer()))
+                .andReturn().getResponse().getContentAsString();
+        mockMvc.perform(post("/timetables/{id}/activate", id(upload, "$.id")).header("Authorization", bearer()))
+                .andExpect(status().isOk());
+        String otherName = displayName(other);
+
+        putSubstitution(rowId, "{\"substituteKeys\":[\"teesalu lea\",\"" + other + "\"],\"freeText\":\"\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.substituteKeys", contains("teesalu lea", other)))
+                .andExpect(jsonPath("$.substituteNames").value("Lea Teesalu / " + otherName));
+
+        // A key that's neither on the row nor in the active version is still rejected
+        putSubstitution(rowId, "{\"substituteKeys\":[\"keegi muu\"],\"freeText\":\"\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Tundmatu õpetaja"));
+    }
+
+    @Test
+    void substitutionSizeLimits() throws Exception {
+        long rowId = id(absent("pärnpuu taimi", null, null), "$.rows[0].id");
+        String elevenKeys = String.join(",", Collections.nCopies(11, "\"" + "ambos algi" + "\""));
+        putSubstitution(rowId, "{\"substituteKeys\":[" + elevenKeys + "],\"freeText\":\"\"}")
+                .andExpect(status().isBadRequest());
+        putSubstitution(rowId, "{\"substituteKeys\":[],\"freeText\":\"" + "x".repeat(201) + "\"}")
+                .andExpect(status().isBadRequest());
+        putSubstitution(rowId, "{\"substituteKeys\":[],\"freeText\":\"" + "x".repeat(200) + "\"}")
+                .andExpect(status().isOk());
     }
 }

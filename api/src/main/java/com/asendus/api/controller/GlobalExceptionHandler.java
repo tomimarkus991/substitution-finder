@@ -1,6 +1,8 @@
 package com.asendus.api.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.TypeMismatchException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -28,6 +30,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, String>> handleUnreadable(HttpMessageNotReadableException ex) {
         return error(HttpStatus.BAD_REQUEST, "Malformed request body");
+    }
+
+    // Bad path variables and query params (a date that isn't a date, period=abc, /substitutions/abc).
+    // MethodArgumentTypeMismatchException is a TypeMismatchException.
+    @ExceptionHandler(TypeMismatchException.class)
+    public ResponseEntity<Map<String, String>> handleTypeMismatch(TypeMismatchException ex) {
+        return error(HttpStatus.BAD_REQUEST, "Vigane päring");
+    }
+
+    // A unique constraint lost a race: a double-tapped absence, or two activations at once
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, String>> handleDataIntegrity(DataIntegrityViolationException ex) {
+        log.warn("Data integrity violation: {}", ex.getMostSpecificCause().getMessage());
+        return error(HttpStatus.CONFLICT, "Andmed muutusid samal ajal, proovi uuesti");
     }
 
     @ExceptionHandler(ResponseStatusException.class)

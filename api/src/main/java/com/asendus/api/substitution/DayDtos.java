@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -27,5 +28,6 @@ public final class DayDtos {
 
     public record CandidateDto(String key, String name, Availability status, List<String> subjects, int todayCount) {}
 
-    public record UpdateSubstitutionRequest(@NotNull List<String> substituteKeys, @NotNull String freeText) {}
+    public record UpdateSubstitutionRequest(@NotNull @Size(max = 10) List<String> substituteKeys,
+                                            @NotNull @Size(max = 200) String freeText) {}
 }

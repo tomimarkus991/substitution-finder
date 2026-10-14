@@ -8,7 +8,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
+import com.jayway.jsonpath.JsonPath;
 
+import java.text.Collator;
+import java.util.List;
+import java.util.Locale;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -177,5 +183,14 @@ class TimetableControllerTest extends IntegrationTest {
     @Test
     void requiresLogin() throws Exception {
         mockMvc.perform(get("/timetables/active")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void teacherListIsInEstonianDisplayNameOrder() throws Exception {
+        activate(upload("opetajad-b.pdf"));
+        String body = mockMvc.perform(get("/timetables/active").header("Authorization", bearer()))
+                .andReturn().getResponse().getContentAsString();
+        List<String> names = JsonPath.read(body, "$.teachers[*].displayName");
+        assertThat(names).hasSize(46).isSortedAccordingTo(Collator.getInstance(Locale.of("et"))::compare);
     }
 }

@@ -30,7 +30,8 @@ public class SubstitutionService {
     private static final Comparator<CandidateDto> CANDIDATE_ORDER = Comparator
             .comparing(CandidateDto::status)               // FREE before ASK_FIRST (enum order)
             .thenComparingInt(CandidateDto::todayCount)
-            .thenComparing(CandidateDto::name);
+            .thenComparing(CandidateDto::name, TeacherKey.DISPLAY_ORDER);
+    private static final String NAME_SEPARATOR = " / ";
 
     private final TimetableService timetableService;
     private final AbsenceRepository absenceRepository;
@@ -67,22 +68,21 @@ public class SubstitutionService {
         if (from > to) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Algustund ei saa olla pärast lõputundi");
         }
-        if (!timetableService.hasActiveVersion()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Lae esmalt tunniplaan üles");
-        }
-        String key = TeacherKey.of(request.teacherKey());
-        Teacher teacher = timetableService.activeTeacher(key)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Õpetajat ei leitud"));
+        Teacher teacher = timetableService.activeTeacher(TeacherKey.of(request.teacherKey()))
+                .orElseThrow(() -> timetableService.hasActiveVersion()
+                        ? new ResponseStatusException(HttpStatus.NOT_FOUND, "Õpetajat ei leitud")
+                        : new ResponseStatusException(HttpStatus.CONFLICT, "Lae esmalt tunniplaan üles"));
         if (absenceRepository.existsByAbsenceDateAndTeacherKey(date, teacher.getTeacherKey())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "See õpetaja on juba puudujaks märgitud");
         }
 
-        Absence absence = absenceRepository.save(Absence.builder()
+        // Flush now so a double-tap that got past the check above fails on the unique constraint here (→ 409)
+        Absence absence = absenceRepository.saveAndFlush(Absence.builder()
                 .absenceDate(date).teacherKey(teacher.getTeacherKey())
                 .teacherName(TeacherKey.displayName(teacher.getName()))
                 .fromPeriod((short) from).toPeriod((short) to).createdBy(userId).build());
 
-        List<Lesson> lessons = lessonsOf(teacher, weekday);
+        List<Lesson> lessons = timetableService.lessonsOf(teacher, weekday);
         List<Substitution> rows = substitutionRepository.saveAll(lessons.stream()
                 .filter(l -> l.getPeriod() >= from && l.getPeriod() <= to)
                 .map(l -> Substitution.builder().absenceId(absence.getId()).period(l.getPeriod())
@@ -101,23 +101,42 @@ public class SubstitutionService {
 
     // ---------- substitutions ----------
 
-    /** Eligibility isn't re-checked: the organiser may override the suggestions. */
+    /**
+     * Sets the row's substitutes (in the given order) and free text. Eligibility isn't re-checked: the organiser
+     * may override the suggestions. A key must be in the active version, or already on the row: a substitute
+     * from an older timetable keeps their stored name.
+     */
     @Transactional
     public SubstitutionDto updateSubstitution(Long id, UpdateSubstitutionRequest request) {
         Substitution row = substitutionRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Asendust ei leitud"));
-        List<Teacher> substitutes = new ArrayList<>();
-        Set<String> seen = new HashSet<>();
-        for (String key : request.substituteKeys()) {
-            Teacher t = timetableService.activeTeacher(key == null ? "" : key)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tundmatu õpetaja"));
-            if (seen.add(t.getTeacherKey())) substitutes.add(t);
+        Map<String, String> stored = storedNames(row);
+        Map<String, String> names = new LinkedHashMap<>(); // key → display name, deduplicated, in order
+        for (String raw : request.substituteKeys()) {
+            String key = TeacherKey.of(raw == null ? "" : raw);
+            if (!names.containsKey(key)) names.put(key, nameFor(key, stored));
         }
-        row.setSubstituteKeys(new ArrayList<>(substitutes.stream().map(Teacher::getTeacherKey).toList()));
-        row.setSubstituteNames(substitutes.stream().map(t -> TeacherKey.displayName(t.getName()))
-                .collect(Collectors.joining(" / ")));
+        row.setSubstituteKeys(new ArrayList<>(names.keySet()));
+        row.setSubstituteNames(String.join(NAME_SEPARATOR, names.values()));
         row.setFreeText(request.freeText().trim());
         return toDto(substitutionRepository.save(row));
+    }
+
+    private String nameFor(String key, Map<String, String> stored) {
+        if (stored.containsKey(key)) return stored.get(key);
+        return timetableService.activeTeacher(key)
+                .map(t -> TeacherKey.displayName(t.getName()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tundmatu õpetaja"));
+    }
+
+    /** The row's current key → name pairs (names are stored joined in key order). */
+    private static Map<String, String> storedNames(Substitution row) {
+        List<String> keys = row.getSubstituteKeys();
+        String[] names = row.getSubstituteNames().isEmpty() ? new String[0] : row.getSubstituteNames().split(NAME_SEPARATOR);
+        Map<String, String> out = new HashMap<>();
+        if (names.length != keys.size()) return out; // shouldn't happen; fall back to the active version
+        for (int i = 0; i < keys.size(); i++) out.put(keys.get(i), names[i]);
+        return out;
     }
 
     // ---------- candidates ----------
@@ -200,19 +219,10 @@ public class SubstitutionService {
         return weekday;
     }
 
-    /** The teacher's lessons that weekday, ordered by period. Matched by id: Teacher has identity equality. */
-    private List<Lesson> lessonsOf(Teacher teacher, int weekday) {
-        return timetableService.lessonsOn(weekday).entrySet().stream()
-                .filter(e -> e.getKey().getId().equals(teacher.getId()))
-                .map(Map.Entry::getValue)
-                .findFirst()
-                .orElse(List.of());
-    }
-
-    /** The day's absences ordered by teacher name. */
+    /** The day's absences in Estonian order of the teacher's display name. */
     private List<Absence> absencesOn(LocalDate date) {
-        return absenceRepository.findByAbsenceDateOrderByTeacherName(date).stream()
-                .sorted(Comparator.comparing(Absence::getTeacherName))
+        return absenceRepository.findByAbsenceDate(date).stream()
+                .sorted(Comparator.comparing(Absence::getTeacherName, TeacherKey.DISPLAY_ORDER))
                 .toList();
     }
 

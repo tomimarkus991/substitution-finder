@@ -14,6 +14,7 @@ import java.time.Instant;
 /** Issues the API's own JWTs. They're validated by the OAuth2 resource server (see JwtConfig). */
 @Service
 public class TokenService {
+    public static final String EMAIL_CLAIM = "email";
 
     private final JwtEncoder jwtEncoder;
     private final Duration expiration;
@@ -27,7 +28,7 @@ public class TokenService {
         Instant issuedAt = Instant.now();
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .subject(String.valueOf(userId))
-                .claim("email", email)
+                .claim(EMAIL_CLAIM, email)
                 .issuedAt(issuedAt)
                 .expiresAt(issuedAt.plus(expiration))
                 .build();

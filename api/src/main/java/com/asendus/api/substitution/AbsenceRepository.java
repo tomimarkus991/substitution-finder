@@ -6,7 +6,7 @@ import java.time.LocalDate;
 import java.util.*;
 
 public interface AbsenceRepository extends JpaRepository<Absence, Long> {
-    List<Absence> findByAbsenceDateOrderByTeacherName(LocalDate date);
+    List<Absence> findByAbsenceDate(LocalDate date);
 
     boolean existsByAbsenceDateAndTeacherKey(LocalDate d, String key);
 

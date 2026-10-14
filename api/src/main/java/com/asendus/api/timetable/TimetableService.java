@@ -70,9 +70,11 @@ public class TimetableService {
                 .collect(Collectors.groupingBy(Lesson::getTeacherId, Collectors.counting()));
         Set<String> placeholders = placeholderKeys();
         List<TeacherSummaryDto> dtos = teachers.stream().map(t -> new TeacherSummaryDto(
-                t.getTeacherKey(), t.getName(), TeacherKey.displayName(t.getName()),
-                placeholders.contains(t.getTeacherKey()),
-                lessonCounts.getOrDefault(t.getId(), 0L).intValue())).toList();
+                        t.getTeacherKey(), t.getName(), TeacherKey.displayName(t.getName()),
+                        placeholders.contains(t.getTeacherKey()),
+                        lessonCounts.getOrDefault(t.getId(), 0L).intValue()))
+                .sorted(Comparator.comparing(TeacherSummaryDto::displayName, TeacherKey.DISPLAY_ORDER))
+                .toList();
         return new TimetableSummaryDto(v.getId(), v.getFileName(), v.getUploadedAt(), dtos);
     }
 
@@ -117,6 +119,14 @@ public class TimetableService {
             if (lessons != null) out.put(t, lessons);
         }
         return out;
+    }
+
+    /** The teacher's lessons on the weekday (1 = Monday … 5 = Friday), ordered by period. */
+    @Transactional(readOnly = true)
+    public List<Lesson> lessonsOf(Teacher teacher, int weekday) {
+        return lessonRepository.findByTeacherIdInAndWeekday(List.of(teacher.getId()), (short) weekday).stream()
+                .sorted(Comparator.comparingInt(Lesson::getPeriod).thenComparing(Lesson::getId))
+                .toList();
     }
 
     /** The teacher with this key in the active version; empty if there's no active version or no such teacher. */
@@ -187,7 +197,7 @@ public class TimetableService {
     /** Display names of the teachers in {@code a} whose key isn't in {@code b}, sorted. */
     private static List<String> difference(Map<String, String> a, Map<String, String> b) {
         return a.entrySet().stream().filter(e -> !b.containsKey(e.getKey()))
-                .map(e -> TeacherKey.displayName(e.getValue())).sorted().toList();
+                .map(e -> TeacherKey.displayName(e.getValue())).sorted(TeacherKey.DISPLAY_ORDER).toList();
     }
 
     private static List<Long> ids(List<Teacher> teachers) {
