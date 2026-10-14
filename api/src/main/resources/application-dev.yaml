@@ -4,3 +4,4 @@ app:
   auth:
     skip-google-verification: true
     dev-user-email: dev@asendus.app
+    allowed-emails: dev@asendus.app

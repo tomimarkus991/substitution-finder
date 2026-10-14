@@ -8,8 +8,15 @@ import com.asendus.api.repository.AppUserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Arrays;
+import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -23,6 +30,7 @@ public class AuthService {
 
     private final boolean skipGoogleVerification;
     private final String devUserEmail;
+    private final Set<String> allowedEmails;
 
     public AuthService(
             TokenService tokenService,
@@ -30,13 +38,18 @@ public class AuthService {
             AppUserRepository userRepository,
             Environment environment,
             @Value("${app.auth.skip-google-verification:false}") boolean skipGoogleVerification,
-            @Value("${app.auth.dev-user-email:#{null}}") String devUserEmail) {
+            @Value("${app.auth.dev-user-email:#{null}}") String devUserEmail,
+            @Value("${app.auth.allowed-emails:}") String allowedEmails) {
 
         this.tokenService = tokenService;
         this.googleTokenVerifier = googleTokenVerifier;
         this.userRepository = userRepository;
         this.skipGoogleVerification = skipGoogleVerification;
         this.devUserEmail = devUserEmail;
+        this.allowedEmails = Arrays.stream(allowedEmails.split(","))
+                .map(String::trim).filter(e -> !e.isEmpty())
+                .map(e -> e.toLowerCase(Locale.ROOT))
+                .collect(Collectors.toUnmodifiableSet());
 
         if (skipGoogleVerification && !environment.matchesProfiles("dev")) {
             throw new IllegalStateException("FATAL: Google Auth bypass is enabled outside the 'dev' profile.");
@@ -56,6 +69,10 @@ public class AuthService {
         AppUser user = skipGoogleVerification
                 ? getOrCreateDevUser()
                 : getOrCreateGoogleUser(googleTokenVerifier.verify(request.idToken()));
+
+        if (!allowedEmails.contains(user.getEmail().toLowerCase(Locale.ROOT))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sul pole ligipääsu, küsi Tomilt");
+        }
 
         String token = tokenService.generateToken(user.getId(), user.getEmail());
 
