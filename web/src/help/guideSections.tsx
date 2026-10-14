@@ -87,6 +87,28 @@ export function TableHelp() {
   )
 }
 
+/** Optional: break duties from the Excel. */
+export function DutyHelp() {
+  return (
+    <Card className="space-y-3">
+      <h2 className="text-xl font-extrabold">Vahetunni valved</h2>
+      <p>
+        Õue- ja söögivahetunni valved on tunniplaanis tühjad augud, aga õpetaja on siis tegelikult hõivatud. Lae{' '}
+        <Link to="/tunniplaan" className="font-semibold text-casual-sky-blue-darker hover:underline">Tunniplaani</Link>{' '}
+        lehel üles valvete Excel (SVT, ÕVT graafik), siis arvestab rakendus neid.
+      </p>
+      <Legend dot="bg-violet-500" title="Lilla silt asendaja juures">
+        Õpetajal on selle tunni ajal valve. Teda pakutakse ikka, aga teistest tagapool.
+      </Legend>
+      <p>Kui puuduval õpetajal on valve, tuleb tema tundide juurde lilla rida ka valve jaoks.</p>
+      <Tip>
+        Kui nime ei leitud tunniplaanist üheselt, näed seda Tunniplaani lehel „Vali õpetaja“ all. Vali õige õpetaja või
+        vajuta <b>Jäta vahele</b> (näiteks õpetaja abi, keda tunniplaanis pole). Uue graafiku korral lae Excel uuesti üles.
+      </Tip>
+    </Card>
+  )
+}
+
 /** Rules that surprise people. */
 export function GoodToKnow() {
   return (

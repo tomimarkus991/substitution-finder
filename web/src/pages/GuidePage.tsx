@@ -1,5 +1,5 @@
 import { PageTitle } from '../components/ui/PageTitle'
-import { AbsenceHelp, GoodToKnow, SubstituteHelp, TableHelp, TimetableHelp } from '../help/guideSections'
+import { AbsenceHelp, DutyHelp, GoodToKnow, SubstituteHelp, TableHelp, TimetableHelp } from '../help/guideSections'
 
 export default function GuidePage() {
   return (
@@ -9,6 +9,7 @@ export default function GuidePage() {
       <AbsenceHelp />
       <SubstituteHelp />
       <TableHelp />
+      <DutyHelp />
       <GoodToKnow />
     </div>
   )

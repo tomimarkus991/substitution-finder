@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { RealButton } from '../components/ui/RealButton'
-import { AbsenceHelp, GoodToKnow, SubstituteHelp, TableHelp, TimetableHelp } from './guideSections'
+import { AbsenceHelp, DutyHelp, GoodToKnow, SubstituteHelp, TableHelp, TimetableHelp } from './guideSections'
 
 /** The guide sections that matter on the page the teacher is looking at. */
 function helpFor(pathname: string) {
   if (pathname.startsWith('/paev')) return <><AbsenceHelp /><SubstituteHelp /><TableHelp /></>
-  if (pathname.startsWith('/tunniplaan')) return <TimetableHelp />
+  if (pathname.startsWith('/tunniplaan')) return <><TimetableHelp /><DutyHelp /></>
   return <GoodToKnow />
 }
 
