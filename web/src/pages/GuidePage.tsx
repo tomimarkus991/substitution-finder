@@ -12,14 +12,14 @@ export default function GuidePage() {
       <Step n={1} color="bg-casual-sky-blue" title="Lae tunniplaan üles" when="kui tunniplaan muutub">
         <p>
           Ava <Link to="/tunniplaan" className="font-semibold text-casual-sky-blue-darker hover:underline">Tunniplaan</Link>{' '}
-          ja vali kooli õpetajate tunniplaani PDF. See on see fail, kus iga õpetaja nädal on eraldi lehel, pealkirjaga „Õpetaja …“.
+          ja vali kooli õpetajate tunniplaani PDF.
         </p>
         <p>
           Eelvaates näed õpetajate ja tundide arvu ning kes on uued või eemaldatud. Kui midagi jäi lugemata, on all
           oranž hoiatus. Kui kõik on korras, vajuta <b>Aktiveeri</b>.
         </p>
         <Tip>
-          Märgi kord linnuke <b>Pole päris õpetaja</b> ridadele nagu „Puutöö“ või „Inglise keel“. Neid saab puudujaks
+          Märgi linnuke <b>Pole päris õpetaja</b> ridadele nagu „Puutöö“ või „Inglise keel“. Neid saab puudujaks
           märkida, aga asendajana neid ei pakuta. Märge jääb alles ka järgmise tunniplaani juures.
         </Tip>
       </Step>
@@ -40,7 +40,7 @@ export default function GuidePage() {
       </Step>
 
       <Step n={3} color="bg-casual-green" title="Vali asendajad" when="iga tunni kohta">
-        <p>Vajuta tunni real <b>Vali asendaja</b>. Rakendus näitab ainult neid, kes saavad tunni anda:</p>
+        <p>Vajuta tunni real <b>Vali asendaja</b>. Rakendus näitab ainult neid, kes saavad tundi anda:</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <Legend dot="bg-casual-green" title="Vaba">
             Õpetaja on sel päeval koolis ja tal on just siis auk, või on see tund kohe pärast tema viimast tundi.
@@ -51,10 +51,10 @@ export default function GuidePage() {
         </div>
         <p>
           Puudu on need, kes sel päeval tööl pole, annavad ise tundi, juba asendavad samal ajal, ise puuduvad, või kelle
-          tööpäev on liiga kaugel (näiteks 4 tundi lõpetanud õpetaja ei saa enam 6. tundi anda).
+          tööpäev on liiga kaugel (näiteks 4 tundi õpetanud õpetaja ei saa enam 6. tundi anda).
         </p>
         <p>
-          Kõrval on õpetaja ained ja <b>täna N asendust</b>, et koormus jaguks ühtlaselt. Valida võib mitu õpetajat. Kui
+          Kõrval on õpetaja ained ja <b>täna N(arv) asendust</b>, et koormus jaguks ühtlaselt. Valida võib mitu õpetajat. Kui
           asendajat pole, vali märkus: <b>Koju</b>, <b>Tulevad hiljem</b>, <b>Klass kokku</b>, <b>Iseseisev töö</b> või kirjuta
           oma tekst.
         </p>

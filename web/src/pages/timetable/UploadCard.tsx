@@ -39,7 +39,7 @@ export default function UploadCard() {
         <span className="font-bold text-casual-sky-blue-darker">
           {upload.isPending ? 'Töötlen faili…' : 'Vali tunniplaani PDF'}
         </span>
-        <span className="text-sm text-text-caption">õpetajate tunniplaan, iga õpetaja eraldi lehel</span>
+        <span className="text-sm text-text-caption">õpetajate tunniplaan</span>
         <input
           ref={input}
           type="file"
