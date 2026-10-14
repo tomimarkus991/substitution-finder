@@ -15,7 +15,12 @@ public final class TestDutySheet {
     private int next = 0;
 
     public TestDutySheet() {
-        timeStyle.setDataFormat(wb.createDataFormat().getFormat("h:mm"));
+        this(false);
+    }
+
+    /** amPm: show the time cells as "1:00 PM" like an English-locale Excel would. */
+    public TestDutySheet(boolean amPm) {
+        timeStyle.setDataFormat(wb.createDataFormat().getFormat(amPm ? "h:mm AM/PM" : "h:mm"));
         cells(sheet.createRow(next++), "", "SÖÖGI-JA ÕUEVAHETUNNID");
         next++; // empty row, like the real sheet
     }

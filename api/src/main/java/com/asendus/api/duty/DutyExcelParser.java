@@ -1,11 +1,15 @@
 package com.asendus.api.duty;
 
 import com.asendus.api.duty.ParsedDuties.ParsedDuty;
+import org.apache.poi.EncryptedDocumentException;
+import org.apache.poi.ooxml.POIXMLException;
 import org.apache.poi.ss.usermodel.*;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.text.Normalizer;
+import java.time.DateTimeException;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -31,10 +35,9 @@ public class DutyExcelParser {
 
     public ParsedDuties parse(byte[] xlsx) {
         try (Workbook wb = WorkbookFactory.create(new ByteArrayInputStream(xlsx))) {
+            if (wb.getNumberOfSheets() == 0) throw new NotADutySheetException();
             return parse(wb.getSheetAt(0));
-        } catch (NotADutySheetException e) {
-            throw e;
-        } catch (Exception e) {
+        } catch (IOException | EncryptedDocumentException | POIXMLException e) {
             throw new NotADutySheetException();
         }
     }
@@ -75,23 +78,29 @@ public class DutyExcelParser {
 
         String kind;
         LocalTime start, end;
-        if (DutyNames.isCanteen(names)) {
-            Optional<LocalTime> t = firstTime(text(fmt, row, D));
-            if (t.isEmpty()) { warnings.add(at + " – söögivahetunni kellaaeg puudub"); return; }
-            kind = "SVT";
-            start = t.get();
-            end = start.plusMinutes(CANTEEN_MINUTES);
-        } else {
-            String e = DutyNames.lower(text(fmt, row, E));
-            Optional<LocalTime[]> range = e.startsWith("klj") || e.startsWith("ujumas") ? Optional.empty() : range(e);
-            if (range.isEmpty()) range = range(text(fmt, row, C));
-            if (range.isEmpty()) { warnings.add(at + " – õuevahetunni kellaaeg puudub"); return; }
-            kind = "OVT";
-            start = range.get()[0];
-            end = range.get()[1];
+        int period;
+        try {
+            if (DutyNames.isCanteen(names)) {
+                Optional<LocalTime> t = firstTime(text(fmt, row, D));
+                if (t.isEmpty()) { warnings.add(at + " – söögivahetunni kellaaeg puudub"); return; }
+                kind = "SVT";
+                start = t.get();
+                end = start.plusMinutes(CANTEEN_MINUTES);
+            } else {
+                String e = DutyNames.lower(text(fmt, row, E));
+                Optional<LocalTime[]> range = e.startsWith("klj") || e.startsWith("ujumas") ? Optional.empty() : range(e);
+                if (range.isEmpty()) range = range(text(fmt, row, C));
+                if (range.isEmpty()) { warnings.add(at + " – õuevahetunni kellaaeg puudub"); return; }
+                kind = "OVT";
+                start = range.get()[0];
+                end = range.get()[1];
+            }
+            period = PeriodTimes.periodOf(start, end);
+            if (period == 0) { warnings.add(at + " – kellaaeg jääb tundidest välja"); return; }
+        } catch (DateTimeException ex) {
+            warnings.add(at + " – vigane kellaaeg");
+            return;
         }
-        int period = PeriodTimes.periodOf(start, end);
-        if (period == 0) { warnings.add(at + " – kellaaeg jääb tundidest välja"); return; }
         if (DutyNames.hidesDuty(names)) warnings.add(at + " – siin võib olla veel üks valve, kontrolli käsitsi");
 
         String position = text(fmt, row, half[1]);
@@ -123,6 +132,10 @@ public class DutyExcelParser {
     private static String text(DataFormatter fmt, Row row, int col) {
         Cell cell = row.getCell(col);
         if (cell == null) return "";
+        if (cell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) {
+            LocalTime t = cell.getLocalDateTimeCellValue().toLocalTime(); // not the cell's own format (AM/PM)
+            return t.getHour() + ":" + String.format("%02d", t.getMinute());
+        }
         return Normalizer.normalize(fmt.formatCellValue(cell), Normalizer.Form.NFC).replace(' ', ' ').trim();
     }
 }

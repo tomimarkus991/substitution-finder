@@ -21,13 +21,13 @@ class DutyNamesTest {
     }
     @Test void dropsParentheses() {
         assertThat(DutyNames.surnames("Kuusk (õvt +6.S)")).containsExactly("Kuusk");
-        assertThat(DutyNames.surnames("Reimann ")).containsExactly("Reimann");
+        assertThat(DutyNames.surnames("Saar ")).containsExactly("Saar");
     }
     @Test void takesWhatFollowsDash() {
         assertThat(DutyNames.surnames("4.S & 6.R ÕVT - Vaher")).containsExactly("Vaher");
     }
     @Test void splitsOnAmpersandAndSlash() {
-        assertThat(DutyNames.surnames("Loo & Kiik/Utt")).containsExactly("Loo", "Kiik", "Utt");
+        assertThat(DutyNames.surnames("Tamm & Mänd/Vaher")).containsExactly("Tamm", "Mänd", "Vaher");
     }
     @Test void hiddenDutyIsDetected() {
         assertThat(DutyNames.hidesDuty("sööklas: Lepp, Pihlakas // 6.S ÕVT (12:35 -13:10) - pos 4 (Kask/Kuusk)")).isTrue();

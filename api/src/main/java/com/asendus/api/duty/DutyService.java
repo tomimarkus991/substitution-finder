@@ -55,7 +55,7 @@ public class DutyService {
     @Transactional
     public DutySummaryDto resolve(Long id, String teacherKey) {
         Duty d = unresolved(id);
-        Teacher t = timetableService.activeTeacher(teacherKey)
+        Teacher t = timetableService.activeTeacher(TeacherKey.of(teacherKey))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tundmatu õpetaja"));
         d.setTeacherKey(t.getTeacherKey());
         d.setTeacherName(TeacherKey.displayName(t.getName()));
@@ -127,7 +127,7 @@ public class DutyService {
         return ascName.trim().split("\\s+")[0];
     }
 
-    /** Lowercase without diacritics, so "Pärnpuu" and "parnpuu" match. */
+    /** Lowercase without diacritics, so "Mänd" and "mand" match. */
     private static String fold(String s) {
         return Normalizer.normalize(s, Normalizer.Form.NFD).replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT);
     }

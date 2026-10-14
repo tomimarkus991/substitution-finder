@@ -61,17 +61,6 @@ class DutyDayTest extends IntegrationTest {
                 .header("Authorization", bearer())).andExpect(status().isCreated());
     }
 
-    void uploadTimetable() throws Exception {
-        String body = mockMvc.perform(multipart("/timetables")
-                        .file(new MockMultipartFile("file", "b.pdf", "application/pdf", TestPdfs.load("opetajad-b.pdf")))
-                        .header("Authorization", bearer()))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
-        long id = ((Number) JsonPath.read(body, "$.id")).longValue();
-        mockMvc.perform(post("/timetables/{id}/activate", id).header("Authorization", bearer()))
-                .andExpect(status().isOk());
-    }
-
     ResultActions postAbsence(String date, String json) throws Exception {
         return mockMvc.perform(post("/days/{d}/absences", date).header("Authorization", bearer())
                 .contentType(MediaType.APPLICATION_JSON).content(json));
@@ -118,5 +107,33 @@ class DutyDayTest extends IntegrationTest {
                 .andExpect(status().isOk());
         assertThat(JsonPath.<List<List<String>>>read(candidatesJson(3), "$[?(@.key=='" + ambiguous + "')].duties").get(0))
                 .containsExactly("ÕVT 10:45–11:15");
+    }
+
+    @Test void pickingASubstituteForADutyRowBlocksThemOnlyInThatPeriod() throws Exception {
+        String body = postAbsence(FRI, "{\"teacherKey\":\"" + onDuty + "\"}").andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        int rowId = JsonPath.<List<Integer>>read(body, "$.rows[?(@.dutyLabel != null)].id").get(0);
+        int dutyPeriod = JsonPath.<List<Integer>>read(body, "$.rows[?(@.dutyLabel != null)].period").get(0);
+
+        String picked = null;
+        int otherPeriod = 0;
+        for (String key : JsonPath.<List<String>>read(candidatesJson(dutyPeriod), "$[*].key")) {
+            for (int p = 1; p <= 7 && picked == null; p++) {
+                if (p != dutyPeriod && JsonPath.<List<String>>read(candidatesJson(p), "$[*].key").contains(key)) {
+                    picked = key;
+                    otherPeriod = p;
+                }
+            }
+            if (picked != null) break;
+        }
+        assertThat(picked).as("a teacher who is a candidate in two periods").isNotNull();
+
+        mockMvc.perform(put("/substitutions/{id}", rowId).header("Authorization", bearer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"substituteKeys\":[\"" + picked + "\"],\"freeText\":\"\"}"))
+                .andExpect(status().isOk());
+
+        assertThat(JsonPath.<List<String>>read(candidatesJson(dutyPeriod), "$[*].key")).doesNotContain(picked);
+        assertThat(JsonPath.<List<String>>read(candidatesJson(otherPeriod), "$[*].key")).contains(picked);
     }
 }

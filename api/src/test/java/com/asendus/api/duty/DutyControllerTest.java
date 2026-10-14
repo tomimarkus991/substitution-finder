@@ -40,15 +40,6 @@ class DutyControllerTest extends IntegrationTest {
                 TeacherKey.of(shared + " Testnimi"), shared + " Testnimi");
     }
 
-    void uploadTimetable() throws Exception { String body = mockMvc.perform(multipart("/timetables")
-                        .file(new MockMultipartFile("file", "b.pdf", "application/pdf", TestPdfs.load("opetajad-b.pdf")))
-                        .header("Authorization", bearer()))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
-        long id = ((Number) JsonPath.read(body, "$.id")).longValue();
-        mockMvc.perform(post("/timetables/{id}/activate", id).header("Authorization", bearer()))
-                .andExpect(status().isOk()); }
-
     byte[] sheet() {
         return new TestDutySheet().day("R")
                 .group("I klassid", "", LocalTime.of(10, 25), "10:45-11:15", unique + ", " + NOBODY, 5, shared, 4)

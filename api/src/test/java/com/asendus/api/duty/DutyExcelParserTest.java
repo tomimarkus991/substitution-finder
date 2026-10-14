@@ -113,4 +113,23 @@ class DutyExcelParserTest {
         assertThatThrownBy(() -> new DutyExcelParser().parse(noHeaders))
                 .isInstanceOf(DutyExcelParser.NotADutySheetException.class);
     }
+
+    @Test void timeCellIsReadAsTwentyFourHourEvenWithAmPmFormat() {
+        byte[] xlsx = new TestDutySheet(true).day("T")
+                .group("IV klassid", "", LocalTime.of(12, 55), "", "sööklas: Kask", null, "", null)
+                .bytes();
+        assertThat(new DutyExcelParser().parse(xlsx).duties()).singleElement().satisfies(d -> {
+            assertThat(d.kind()).isEqualTo("SVT");
+            assertThat(d.starts()).isEqualTo(LocalTime.of(12, 55));
+        });
+    }
+
+    @Test void invalidTimeWarnsForThatHalfOnly() {
+        byte[] xlsx = new TestDutySheet().day("E")
+                .group("I klassid", "", LocalTime.of(10, 25), "10:65-11:15", "Kask", 4, "sööklas: Tamm", null)
+                .bytes();
+        ParsedDuties result = new DutyExcelParser().parse(xlsx);
+        assertThat(result.warnings()).singleElement().satisfies(w -> assertThat(w).contains("Kask").endsWith("vigane kellaaeg"));
+        assertThat(result.duties()).extracting(ParsedDuties.ParsedDuty::surname).contains("Tamm").doesNotContain("Kask");
+    }
 }
