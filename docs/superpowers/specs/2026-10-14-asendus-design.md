@@ -22,7 +22,7 @@ Duty rota (korrapidamine), multiple schools, notifying teachers, editing the tim
 ## Users and access
 
 - Single school, shared data for everyone allowed in.
-- Allowlist via `ALLOWED_EMAILS` env var (comma-separated). Initial: `aili@alber.ee` plus Tomi's email.
+- Allowlist via `ALLOWED_EMAILS` env var (comma-separated). Initial: `aili@alber.ee`, `tomimarkus@alber.ee`.
 - Google sign-in exchanged for the API's JWT (same as `impulse`). Non-allowlisted email → `403 { "error": "..." }` from `POST /auth/google`.
 - `/` is public. Every other route requires login; logged-in users visiting `/` are redirected to Täna.
 
