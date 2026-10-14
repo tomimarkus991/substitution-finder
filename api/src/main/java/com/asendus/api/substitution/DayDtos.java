@@ -12,9 +12,10 @@ import java.util.List;
 public final class DayDtos {
     private DayDtos() {}
 
-    /** One lesson of an absent teacher. substituteNames are display names joined with " / ". */
+    /** One lesson (or break duty, when dutyLabel is set) of an absent teacher. substituteNames are display names joined with " / ". */
     public record SubstitutionDto(Long id, int period, String classes, String subject,
-                                  List<String> substituteKeys, String substituteNames, String freeText) {}
+                                  List<String> substituteKeys, String substituteNames, String freeText,
+                                  String dutyLabel) {}
 
     public record AbsenceDto(Long id, String teacherKey, String teacherName, int fromPeriod, int toPeriod,
                              List<SubstitutionDto> rows) {}
@@ -26,7 +27,9 @@ public final class DayDtos {
                                        @Min(1) @Max(7) Integer fromPeriod,
                                        @Min(1) @Max(7) Integer toPeriod) {}
 
-    public record CandidateDto(String key, String name, Availability status, List<String> subjects, int todayCount) {}
+    /** duties: labels of the candidate's break duties in the requested period. */
+    public record CandidateDto(String key, String name, Availability status, List<String> subjects, int todayCount,
+                           List<String> duties) {}
 
     public record UpdateSubstitutionRequest(@NotNull @Size(max = 10) List<String> substituteKeys,
                                             @NotNull @Size(max = 200) String freeText) {}

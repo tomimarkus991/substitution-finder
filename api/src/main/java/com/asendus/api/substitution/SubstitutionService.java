@@ -1,5 +1,8 @@
 package com.asendus.api.substitution;
 
+import com.asendus.api.duty.Duty;
+import com.asendus.api.duty.DutyLabels;
+import com.asendus.api.duty.DutyService;
 import com.asendus.api.substitution.DayDtos.AbsenceDto;
 import com.asendus.api.substitution.DayDtos.CandidateDto;
 import com.asendus.api.substitution.DayDtos.CreateAbsenceRequest;
@@ -29,6 +32,7 @@ public class SubstitutionService {
             Comparator.comparingInt(Substitution::getPeriod).thenComparing(Substitution::getId);
     private static final Comparator<CandidateDto> CANDIDATE_ORDER = Comparator
             .comparing(CandidateDto::status)               // FREE before ASK_FIRST (enum order)
+            .thenComparing(c -> !c.duties().isEmpty())     // a break duty in this period → after the others
             .thenComparingInt(CandidateDto::todayCount)
             .thenComparing(CandidateDto::name, TeacherKey.DISPLAY_ORDER);
     private static final String NAME_SEPARATOR = " / ";
@@ -36,6 +40,7 @@ public class SubstitutionService {
     private final TimetableService timetableService;
     private final AbsenceRepository absenceRepository;
     private final SubstitutionRepository substitutionRepository;
+    private final DutyService dutyService;
 
     // ---------- days ----------
 
@@ -59,7 +64,7 @@ public class SubstitutionService {
 
     // ---------- absences ----------
 
-    /** Marks the teacher absent and snapshots one row per lesson of theirs in the period range. */
+    /** Marks the teacher absent and snapshots one row per lesson and per break duty of theirs in the period range. */
     @Transactional
     public AbsenceDto createAbsence(LocalDate date, CreateAbsenceRequest request, Long userId) {
         int weekday = schoolWeekday(date);
@@ -83,11 +88,18 @@ public class SubstitutionService {
                 .fromPeriod((short) from).toPeriod((short) to).createdBy(userId).build());
 
         List<Lesson> lessons = timetableService.lessonsOf(teacher, weekday);
-        List<Substitution> rows = substitutionRepository.saveAll(lessons.stream()
+        List<Substitution> newRows = new ArrayList<>(lessons.stream()
                 .filter(l -> l.getPeriod() >= from && l.getPeriod() <= to)
                 .map(l -> Substitution.builder().absenceId(absence.getId()).period(l.getPeriod())
                         .classes(l.getClasses()).subject(l.getSubject()).build())
                 .toList());
+        dutyService.dutiesOn(weekday).getOrDefault(teacher.getTeacherKey(), List.of()).stream()
+                .filter(d -> d.getPeriod() >= from && d.getPeriod() <= to)
+                .map(d -> Substitution.builder().absenceId(absence.getId()).period(d.getPeriod())
+                        .classes(d.getClassGroup()).subject(DutyLabels.kindName(d.getKind()))
+                        .dutyLabel(DutyLabels.labelWithPosition(d)).build())
+                .forEach(newRows::add);
+        List<Substitution> rows = substitutionRepository.saveAll(newRows);
         return toDto(absence, rows);
     }
 
@@ -161,14 +173,17 @@ public class SubstitutionService {
         blocked.addAll(substitutingIn(rows, period));
         Map<String, Integer> todayCounts = todayCounts(rows);
         Map<String, List<String>> subjects = timetableService.subjectsByTeacherKey();
+        Map<String, List<Duty>> duties = dutyService.dutiesOn(weekday);
 
         List<CandidateDto> out = new ArrayList<>();
         lessons.forEach((teacher, dayLessons) -> {
             String key = teacher.getTeacherKey();
             Availability status = Eligibility.of(periodsOf(dayLessons), period, blocked.contains(key));
             if (status != Availability.HIDDEN) {
+                List<String> dutyLabels = duties.getOrDefault(key, List.of()).stream()
+                        .filter(d -> d.getPeriod() == period).map(DutyLabels::label).toList();
                 out.add(new CandidateDto(key, TeacherKey.displayName(teacher.getName()), status,
-                        subjects.getOrDefault(key, List.of()), todayCounts.getOrDefault(key, 0)));
+                        subjects.getOrDefault(key, List.of()), todayCounts.getOrDefault(key, 0), dutyLabels));
             }
         });
         out.sort(CANDIDATE_ORDER);
@@ -238,6 +253,7 @@ public class SubstitutionService {
 
     private static SubstitutionDto toDto(Substitution s) {
         return new SubstitutionDto(s.getId(), s.getPeriod(), s.getClasses(), s.getSubject(),
-                List.copyOf(s.getSubstituteKeys()), s.getSubstituteNames(), s.getFreeText());
+                List.copyOf(s.getSubstituteKeys()), s.getSubstituteNames(), s.getFreeText(),
+                s.getDutyLabel());
     }
 }
