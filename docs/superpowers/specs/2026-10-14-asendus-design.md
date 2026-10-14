@@ -53,8 +53,8 @@ Parsing (PDFBox `PDFTextStripper` with text positions):
 1. Read the title → teacher name (stored as shown, e.g. "Pärnpuu Taimi"; displayed as "Taimi Pärnpuu").
 2. Locate the column header numbers 1–7 and the day labels Es–Re → x-boundaries of the columns and y-boundaries of the rows.
 3. Group the remaining text into cells by x/y. Classify the text by font size and position: large → classes, small top-left → subject, small top-right → room, small bottom → group/note.
-4. **Double lesson**: a cell whose vertical borders sit on non-adjacent column boundaries (e.g. Pupart 5R, Te 1–2; its text is centered between columns). It becomes one lesson per covered period. The text-position heuristic is tried first; the parsing spike decides whether the cell borders (line/rectangle paths via PDFBox `PDFGraphicsStreamEngine`) are also needed.
-5. **Split cell**: two separate vertical clusters of large class text inside one slot, usually with a horizontal line between them (e.g. Ambos, Ne 5). It becomes two lessons in the same period.
+4. **Double lesson**: a cell whose vertical borders sit on non-adjacent column boundaries (e.g. Pupart 5R, Te 1–2; its text is centered between columns). It becomes one lesson per covered period. Detected from text positions alone: the class text of a merged cell is centered on the column boundary (confirmed by the parsing spike, see `docs/superpowers/notes/2026-10-14-pdf-layout.md`).
+5. **Split cell**: a slot with more than one label line (subject/room text at the top of each half; e.g. Ambos, Ne 5). Each label line starts a lesson in the same period.
 6. Class strings like `2.3/2.4/2.5V` are kept as a raw string plus a split list.
 7. Anything that can't be placed → a warning with the page number; the upload doesn't fail.
 8. A file that doesn't look like an aSc teacher PDF (no grid headers found on any page) → 400.
