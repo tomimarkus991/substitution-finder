@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
+.print-only { display: none; }
+
 @media print {
   .no-print { display: none !important; }
+  .print-only { display: block; }
   body { background: white; }
 }

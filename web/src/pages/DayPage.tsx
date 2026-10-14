@@ -7,6 +7,7 @@ import type { Day } from '../api/types'
 import { isIsoDate, isWeekend, shiftSchoolDay, shortDate, todayIso, weekdayName } from '../lib/dates'
 import AddAbsenceForm from './day/AddAbsenceForm'
 import AbsenceCard from './day/AbsenceCard'
+import DayTable from './day/DayTable'
 
 export default function DayPage() {
   const { date } = useParams()
@@ -30,6 +31,7 @@ function DayView({ date }: { date: string }) {
 
   return (
     <div className="space-y-4">
+      <div className="no-print space-y-4">
       <DateHeader date={date} />
 
       {weekend ? (
@@ -52,10 +54,11 @@ function DayView({ date }: { date: string }) {
           {absences.map(a => (
             <AbsenceCard key={a.id} date={date} absence={a} openRow={openRow} onOpenRow={setOpenRow} />
           ))}
-
-          {/* Asenduste tabel: Task 12 renders <DayTable day={day.data} /> here. */}
         </>
       )}
+      </div>
+
+      {day.data && !weekend && <DayTable day={day.data} />}
     </div>
   )
 }
