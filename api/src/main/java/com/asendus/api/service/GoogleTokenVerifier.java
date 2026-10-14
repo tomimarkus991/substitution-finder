@@ -50,11 +50,11 @@ public class GoogleTokenVerifier {
         try {
             jwt = decoder.decode(idToken);
         } catch (BadJwtException e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid Google token");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Google sisselogimine ebaõnnestus");
         } catch (JwtException e) {
             // Not the token's fault, e.g. Google's keys couldn't be fetched
             log.warn("Could not verify Google token: {}", e.getMessage());
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Could not verify Google token");
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Google sisselogimine ebaõnnestus");
         }
 
         return new GoogleIdentity(jwt.getSubject(), jwt.getClaimAsString("email"), jwt.getClaimAsString("name"));

@@ -58,25 +58,25 @@ class AuthControllerTest extends IntegrationTest {
     @Test
     void login_rejectsAnInvalidGoogleToken() throws Exception {
         when(googleTokenVerifier.verify("forged"))
-                .thenThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid Google token"));
+                .thenThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Google sisselogimine ebaõnnestus"));
 
         login("forged")
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value("Invalid Google token"));
+                .andExpect(jsonPath("$.error").value("Google sisselogimine ebaõnnestus"));
     }
 
     @Test
     void login_rejectsABlankToken() throws Exception {
         login(" ")
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("idToken must not be blank"));
+                .andExpect(jsonPath("$.error").value("Vigane päring"));
     }
 
     @Test
     void me_returns401WithoutAToken() throws Exception {
         mockMvc.perform(get("/me"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value("Unauthorized"));
+                .andExpect(jsonPath("$.error").value("Logi uuesti sisse"));
     }
 
     @Test

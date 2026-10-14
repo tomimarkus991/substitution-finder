@@ -6,7 +6,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.validation.FieldError;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -22,14 +21,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidation(MethodArgumentNotValidException ex) {
-        FieldError first = ex.getBindingResult().getFieldError();
-        String message = first != null ? first.getField() + " " + first.getDefaultMessage() : "Validation failed";
-        return error(HttpStatus.BAD_REQUEST, message);
+        return error(HttpStatus.BAD_REQUEST, "Vigane päring");
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, String>> handleUnreadable(HttpMessageNotReadableException ex) {
-        return error(HttpStatus.BAD_REQUEST, "Malformed request body");
+        return error(HttpStatus.BAD_REQUEST, "Vigane päring");
     }
 
     // Bad path variables and query params (a date that isn't a date, period=abc, /substitutions/abc).
@@ -57,11 +54,20 @@ public class GlobalExceptionHandler {
         // Spring's own errors (404 no route, 405 wrong method, ...) keep their status
         if (ex instanceof ErrorResponse errorResponse) {
             HttpStatus status = HttpStatus.valueOf(errorResponse.getStatusCode().value());
-            return error(status, status.getReasonPhrase());
+            return error(status, estonianReason(status));
         }
 
         log.error("Unexpected error", ex);
-        return error(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, "Serveri viga");
+    }
+
+    private static String estonianReason(HttpStatus status) {
+        return switch (status) {
+            case NOT_FOUND -> "Ei leitud";
+            case METHOD_NOT_ALLOWED -> "Vigane päring";
+            case PAYLOAD_TOO_LARGE -> "Fail on liiga suur";
+            default -> status.is4xxClientError() ? "Vigane päring" : "Serveri viga";
+        };
     }
 
     private ResponseEntity<Map<String, String>> error(HttpStatus status, String message) {

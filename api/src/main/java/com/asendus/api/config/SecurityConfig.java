@@ -58,7 +58,7 @@ public class SecurityConfig {
         return (request, response, exception) -> {
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            response.getWriter().write("{\"error\":\"Unauthorized\"}");
+            response.getWriter().write("{\"error\":\"Logi uuesti sisse\"}");
         };
     }
 }

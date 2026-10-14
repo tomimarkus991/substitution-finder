@@ -24,7 +24,12 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (token) headers.set('Authorization', `Bearer ${token}`)
   if (init.body && !(init.body instanceof FormData)) headers.set('Content-Type', 'application/json')
 
-  const res = await fetch(BASE + path, { ...init, headers })
+  let res: Response
+  try {
+    res = await fetch(BASE + path, { ...init, headers })
+  } catch {
+    throw new ApiError(0, 'Server ei vasta')
+  }
   if (res.status === 401) {
     tokenStore.clear()
     onUnauthorized()
