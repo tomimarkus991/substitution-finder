@@ -1,6 +1,10 @@
 package com.asendus.api.timetable;
 
 import com.asendus.api.IntegrationTest;
+import com.asendus.api.duty.Duty;
+import com.asendus.api.duty.DutyRepository;
+import com.asendus.api.duty.DutyVersion;
+import com.asendus.api.duty.DutyVersionRepository;
 import com.asendus.api.model.AppUser;
 import com.asendus.api.repository.AppUserRepository;
 import com.asendus.api.substitution.Absence;
@@ -11,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,6 +29,8 @@ class SchemaTest extends IntegrationTest {
     @Autowired LessonRepository lessons;
     @Autowired AbsenceRepository absences;
     @Autowired SubstitutionRepository substitutions;
+    @Autowired DutyVersionRepository dutyVersions;
+    @Autowired DutyRepository duties;
 
     @Test
     void entitiesRoundTrip() {
@@ -62,5 +69,34 @@ class SchemaTest extends IntegrationTest {
         assertThat(loaded.getSubstituteKeys()).containsExactly("k1", "k2");
         assertThat(loaded.getFreeText()).isEmpty();
         assertThat(substitutions.findByAbsenceIdInOrderByPeriod(List.of(a.getId()))).hasSize(1);
+    }
+
+    @Test
+    void dutiesRoundTrip() {
+        AppUser user = users.save(AppUser.builder()
+                .googleSub("schema-test-duty").email("schema-duty@example.com").name("Schema Duty").build());
+
+        DutyVersion v = dutyVersions.save(DutyVersion.builder()
+                .uploadedBy(user.getId()).fileName("duties.xlsx").warnings(List.of("w")).build());
+        assertThat(dutyVersions.findFirstByOrderByIdDesc().orElseThrow().getId()).isEqualTo(v.getId());
+
+        Duty d = duties.save(Duty.builder().versionId(v.getId()).weekday((short) 1).period((short) 2)
+                .kind("OVT").starts(LocalTime.of(10, 45)).ends(LocalTime.of(11, 15))
+                .classGroup("1.1 ja 1.2").rawName("Kask")
+                .candidateKeys(List.of("a", "b")).build());
+        Duty loadedDuty = duties.findById(d.getId()).orElseThrow();
+        assertThat(loadedDuty.getCandidateKeys()).containsExactly("a", "b");
+        assertThat(loadedDuty.getStarts()).isEqualTo(LocalTime.of(10, 45));
+        assertThat(loadedDuty.getTeacherKey()).isNull();
+        assertThat(loadedDuty.getPosition()).isEmpty();
+        assertThat(duties.findByVersionIdOrderByWeekdayAscPeriodAscIdAsc(v.getId())).hasSize(1);
+        assertThat(duties.findByVersionIdAndWeekdayAndTeacherKeyNotNull(v.getId(), (short) 1)).isEmpty();
+
+        Absence a = absences.save(Absence.builder().absenceDate(LocalDate.of(2026, 10, 16))
+                .teacherKey("tamm_t").teacherName("Tamm Tiina").fromPeriod((short) 1).toPeriod((short) 4)
+                .createdBy(user.getId()).build());
+        Substitution s = substitutions.save(Substitution.builder().absenceId(a.getId())
+                .period((short) 2).classes("").subject("").dutyLabel("ÕVT 10:45–11:15").build());
+        assertThat(substitutions.findById(s.getId()).orElseThrow().getDutyLabel()).isEqualTo("ÕVT 10:45–11:15");
     }
 }

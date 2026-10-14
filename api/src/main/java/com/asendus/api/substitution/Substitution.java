@@ -44,4 +44,8 @@ public class Substitution {
     @Builder.Default
     @Column(name = "free_text", nullable = false)
     private String freeText = "";
+
+    /** e.g. "ÕVT 10:45–11:15 · pos 4" when the row covers a break duty; null for lessons. */
+    @Column(name = "duty_label")
+    private String dutyLabel;
 }

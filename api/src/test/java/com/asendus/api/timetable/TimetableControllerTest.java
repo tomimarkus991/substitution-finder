@@ -30,7 +30,7 @@ class TimetableControllerTest extends IntegrationTest {
 
     @BeforeEach
     void clean() {
-        jdbc.execute("TRUNCATE timetable_version, placeholder_flag, absence CASCADE");
+        jdbc.execute("TRUNCATE timetable_version, placeholder_flag, absence, duty_version CASCADE");
     }
 
     private long upload(String file) throws Exception {
