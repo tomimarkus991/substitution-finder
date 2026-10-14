@@ -4,11 +4,9 @@ import com.asendus.api.IntegrationTest;
 import com.asendus.api.service.GoogleTokenVerifier;
 import com.asendus.api.service.GoogleTokenVerifier.GoogleIdentity;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -22,8 +20,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class AuthControllerTest extends IntegrationTest {
 
-    @Autowired
-    private MockMvc mockMvc;
 
     @MockitoBean
     private GoogleTokenVerifier googleTokenVerifier;

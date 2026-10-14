@@ -6,6 +6,11 @@ spring:
   threads:
     virtual:
       enabled: true
+  servlet:
+    multipart:
+      # Timetable PDFs are around 1MB; leave plenty of room
+      max-file-size: 20MB
+      max-request-size: 20MB
   jpa:
     open-in-view: false
     # Flyway builds the DB. Hibernate just double-checks that the Java models match.

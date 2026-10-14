@@ -2,8 +2,6 @@ package com.asendus.api.config;
 
 import com.asendus.api.IntegrationTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -11,7 +9,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class CorsTest extends IntegrationTest {
 
-    @Autowired MockMvc mockMvc;
 
     @Test
     void allowsTheWebOrigin() throws Exception {

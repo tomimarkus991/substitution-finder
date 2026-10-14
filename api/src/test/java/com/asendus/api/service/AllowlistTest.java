@@ -3,10 +3,8 @@ package com.asendus.api.service;
 import com.asendus.api.IntegrationTest;
 import com.asendus.api.service.GoogleTokenVerifier.GoogleIdentity;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
 
@@ -17,7 +15,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class AllowlistTest extends IntegrationTest {
 
-    @Autowired MockMvc mockMvc;
     @MockitoBean GoogleTokenVerifier googleTokenVerifier;
 
     @Test
