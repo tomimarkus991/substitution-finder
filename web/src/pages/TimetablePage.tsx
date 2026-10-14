@@ -1,23 +1,14 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api, ApiError } from '../api/client'
-import type { TimetableSummary } from '../api/types'
+import { api } from '../api/client'
+import { fetchActiveTimetable } from '../api/queries'
 import UploadCard from './timetable/UploadCard'
 import TeacherGrid from './timetable/TeacherGrid'
-
-async function fetchActive(): Promise<TimetableSummary | null> {
-  try {
-    return await api<TimetableSummary>('/timetables/active')
-  } catch (e) {
-    if (e instanceof ApiError && e.status === 404) return null
-    throw e
-  }
-}
 
 export default function TimetablePage() {
   const qc = useQueryClient()
   const [selected, setSelected] = useState<string | null>(null)
-  const { data: active, isLoading } = useQuery({ queryKey: ['timetable'], queryFn: fetchActive })
+  const { data: active, isLoading } = useQuery({ queryKey: ['timetable'], queryFn: fetchActiveTimetable })
   const setPlaceholder = useMutation({
     mutationFn: (v: { key: string; placeholder: boolean }) =>
       api<void>(`/teachers/${encodeURIComponent(v.key)}/placeholder`, {
