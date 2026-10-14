@@ -129,6 +129,12 @@ public class TimetableService {
                 .toList();
     }
 
+    /** The active version's teachers in name order; empty if there is no active version. */
+    @Transactional(readOnly = true)
+    public List<Teacher> activeTeachers() {
+        return activeVersion().map(v -> teacherRepository.findByVersionIdOrderByName(v.getId())).orElse(List.of());
+    }
+
     /** The teacher with this key in the active version; empty if there's no active version or no such teacher. */
     @Transactional(readOnly = true)
     public Optional<Teacher> activeTeacher(String key) {
