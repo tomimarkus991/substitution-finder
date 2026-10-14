@@ -44,7 +44,7 @@ class SchemaTest extends IntegrationTest {
         assertThat(versions.findByActiveFalse()).extracting(TimetableVersion::getId).contains(v.getId());
 
         Teacher t = teachers.save(Teacher.builder()
-                .versionId(v.getId()).teacherKey("tamm_t").name("Tamm Tiina").build());
+                .versionId(v.getId()).teacherKey("tamm_t").name("Tamm Testnimi").build());
         assertThat(teachers.findByVersionIdAndTeacherKey(v.getId(), "tamm_t")).isPresent();
 
         Lesson l = lessons.save(Lesson.builder().teacherId(t.getId()).weekday((short) 2).period((short) 3)
@@ -55,7 +55,7 @@ class SchemaTest extends IntegrationTest {
 
         LocalDate date = LocalDate.of(2026, 10, 15);
         Absence a = absences.save(Absence.builder().absenceDate(date).teacherKey("tamm_t")
-                .teacherName("Tamm Tiina").fromPeriod((short) 1).toPeriod((short) 4)
+                .teacherName("Tamm Testnimi").fromPeriod((short) 1).toPeriod((short) 4)
                 .createdBy(user.getId()).build());
         Absence loadedAbsence = absences.findById(a.getId()).orElseThrow();
         assertThat(loadedAbsence.getAbsenceDate()).isEqualTo(date);
@@ -93,7 +93,7 @@ class SchemaTest extends IntegrationTest {
         assertThat(duties.findByVersionIdAndWeekdayAndTeacherKeyNotNull(v.getId(), (short) 1)).isEmpty();
 
         Absence a = absences.save(Absence.builder().absenceDate(LocalDate.of(2026, 10, 16))
-                .teacherKey("tamm_t").teacherName("Tamm Tiina").fromPeriod((short) 1).toPeriod((short) 4)
+                .teacherKey("tamm_t").teacherName("Tamm Testnimi").fromPeriod((short) 1).toPeriod((short) 4)
                 .createdBy(user.getId()).build());
         Substitution s = substitutions.save(Substitution.builder().absenceId(a.getId())
                 .period((short) 2).classes("").subject("").dutyLabel("ÕVT 10:45–11:15").build());

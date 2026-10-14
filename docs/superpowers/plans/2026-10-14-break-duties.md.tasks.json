@@ -4,12 +4,12 @@
     {
       "id": 0,
       "subject": "Task 1: Test fixture, POI dependency, migration and entities",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "id": 1,
       "subject": "Task 2: PeriodTimes",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         0
       ]
@@ -17,7 +17,7 @@
     {
       "id": 2,
       "subject": "Task 3: DutyNames and DutyLabels",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         0
       ]
@@ -25,7 +25,7 @@
     {
       "id": 3,
       "subject": "Task 4: DutyExcelParser",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         0,
         2
@@ -34,7 +34,7 @@
     {
       "id": 4,
       "subject": "Task 5: DutyService and DutyController",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         1,
         2,
@@ -44,7 +44,7 @@
     {
       "id": 5,
       "subject": "Task 6: Duties in candidates and absences",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         4
       ]
@@ -52,7 +52,7 @@
     {
       "id": 6,
       "subject": "Task 7: Web duty upload card",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         5
       ]
@@ -60,7 +60,7 @@
     {
       "id": 7,
       "subject": "Task 8: Web badges, duty rows, table",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         6
       ]
@@ -68,7 +68,7 @@
     {
       "id": 8,
       "subject": "Task 9: Help text",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         7
       ]
@@ -76,11 +76,11 @@
     {
       "id": 9,
       "subject": "Task 10: Final verification",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         8
       ]
     }
   ],
-  "lastUpdated": "2026-10-14T14:34:33.587761+00:00"
+  "lastUpdated": "2026-10-14T15:00:50.834785+00:00"
 }
