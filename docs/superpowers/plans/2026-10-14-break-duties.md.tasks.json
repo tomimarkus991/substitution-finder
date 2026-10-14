@@ -1,0 +1,86 @@
+{
+  "planPath": "docs/superpowers/plans/2026-10-14-break-duties.md",
+  "tasks": [
+    {
+      "id": 0,
+      "subject": "Task 1: Test fixture, POI dependency, migration and entities",
+      "status": "pending"
+    },
+    {
+      "id": 1,
+      "subject": "Task 2: PeriodTimes",
+      "status": "pending",
+      "blockedBy": [
+        0
+      ]
+    },
+    {
+      "id": 2,
+      "subject": "Task 3: DutyNames and DutyLabels",
+      "status": "pending",
+      "blockedBy": [
+        0
+      ]
+    },
+    {
+      "id": 3,
+      "subject": "Task 4: DutyExcelParser",
+      "status": "pending",
+      "blockedBy": [
+        0,
+        2
+      ]
+    },
+    {
+      "id": 4,
+      "subject": "Task 5: DutyService and DutyController",
+      "status": "pending",
+      "blockedBy": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "id": 5,
+      "subject": "Task 6: Duties in candidates and absences",
+      "status": "pending",
+      "blockedBy": [
+        4
+      ]
+    },
+    {
+      "id": 6,
+      "subject": "Task 7: Web duty upload card",
+      "status": "pending",
+      "blockedBy": [
+        5
+      ]
+    },
+    {
+      "id": 7,
+      "subject": "Task 8: Web badges, duty rows, table",
+      "status": "pending",
+      "blockedBy": [
+        6
+      ]
+    },
+    {
+      "id": 8,
+      "subject": "Task 9: Help text",
+      "status": "pending",
+      "blockedBy": [
+        7
+      ]
+    },
+    {
+      "id": 9,
+      "subject": "Task 10: Final verification",
+      "status": "pending",
+      "blockedBy": [
+        8
+      ]
+    }
+  ],
+  "lastUpdated": "2026-10-14T14:34:33.587761+00:00"
+}
