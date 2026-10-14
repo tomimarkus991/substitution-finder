@@ -32,30 +32,30 @@ function DayView({ date }: { date: string }) {
   return (
     <div className="space-y-4">
       <div className="no-print space-y-4">
-      <DateHeader date={date} />
+        <DateHeader date={date} />
 
-      {weekend ? (
-        <Notice>Nädalavahetusel tunde pole</Notice>
-      ) : timetable.data === null ? (
-        <Notice>
-          Lae esmalt tunniplaan üles.{' '}
-          <Link to="/tunniplaan" className="font-medium text-blue-700 underline">Tunniplaani lehele</Link>
-        </Notice>
-      ) : (
-        <>
-          {timetable.data && (
-            <AddAbsenceForm date={date} teachers={timetable.data.teachers} absentKeys={absentKeys} />
-          )}
+        {weekend ? (
+          <Notice>Nädalavahetusel tunde pole</Notice>
+        ) : timetable.data === null ? (
+          <Notice>
+            Lae esmalt tunniplaan üles.{' '}
+            <Link to="/tunniplaan" className="font-medium text-blue-700 underline">Tunniplaani lehele</Link>
+          </Notice>
+        ) : (
+          <>
+            {timetable.data && (
+              <AddAbsenceForm date={date} teachers={timetable.data.teachers} absentKeys={absentKeys} />
+            )}
 
-          {day.isLoading && <p className="text-sm text-gray-600">Laen…</p>}
-          {day.data && absences.length === 0 && (
-            <p className="text-gray-600">Sel päeval pole veel ühtegi puudujat.</p>
-          )}
-          {absences.map(a => (
-            <AbsenceCard key={a.id} date={date} absence={a} openRow={openRow} onOpenRow={setOpenRow} />
-          ))}
-        </>
-      )}
+            {day.isLoading && <p className="text-sm text-gray-600">Laen…</p>}
+            {day.data && absences.length === 0 && (
+              <p className="text-gray-600">Sel päeval pole veel ühtegi puudujat.</p>
+            )}
+            {absences.map(a => (
+              <AbsenceCard key={a.id} date={date} absence={a} openRow={openRow} onOpenRow={setOpenRow} />
+            ))}
+          </>
+        )}
       </div>
 
       {day.data && !weekend && <DayTable day={day.data} />}

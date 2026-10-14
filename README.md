@@ -41,7 +41,7 @@ cd web && npm test
 
 ## Deploy
 
-- API: push to `main` runs `.github/workflows/deploy-api.yml` (verify, build image, push to Docker Hub, `docker compose up -d` on the VPS). Health: https://api.asendus.alber.ee/api/v1/actuator/health
+- API: push to `main` runs `.github/workflows/deploy-api.yml` (build image with tests skipped, push to Docker Hub, `docker compose up -d` on the VPS). Tests run in `verify-api.yml` on pull requests; deploy does not run them. Health: https://api.asendus.alber.ee/api/v1/actuator/health
 - Web: push to `main` touching `web/**` runs `.github/workflows/deploy-web.yml` (test, build, deploy to Cloudflare Pages project `asendus`).
 
 ### One-time manual setup

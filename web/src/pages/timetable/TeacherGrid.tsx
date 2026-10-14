@@ -6,10 +6,11 @@ const DAYS = ['E', 'T', 'K', 'N', 'R']
 const PERIODS = [1, 2, 3, 4, 5, 6, 7]
 
 export default function TeacherGrid({ teacherKey }: { teacherKey: string }) {
-  const { data } = useQuery({
+  const { data, isError } = useQuery({
     queryKey: ['timetable', 'teacher', teacherKey],
     queryFn: () => api<Grid>(`/timetables/active/teachers/${encodeURIComponent(teacherKey)}`),
   })
+  if (isError) return <p className="text-sm text-red-700">Tunniplaani ei õnnestunud laadida</p>
   if (!data) return <p className="text-sm text-gray-600">Laen…</p>
 
   const at = (day: number, period: number): Lesson[] =>
@@ -36,6 +37,7 @@ export default function TeacherGrid({ teacherKey }: { teacherKey: string }) {
                       <div key={j} className="mb-1 last:mb-0">
                         <div className="font-medium">{l.classes}</div>
                         <div className="text-xs text-gray-500">{[l.subject, l.room].filter(Boolean).join(' ')}</div>
+                        {l.note && <div className="text-xs text-gray-400">{l.note}</div>}
                       </div>
                     ))}
                   </td>

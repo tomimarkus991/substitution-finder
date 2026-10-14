@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "web/**"
+      - ".github/workflows/deploy-web.yml"
   workflow_dispatch:
 
 jobs:
@@ -20,6 +21,10 @@ jobs:
           node-version: "22"
           cache: "npm"
           cache-dependency-path: web/package-lock.json
+      - name: Require Google client ID
+        run: test -n "$GOOGLE_CLIENT_ID" || { echo "::error::vars.GOOGLE_CLIENT_ID is empty"; exit 1; }
+        env:
+          GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
       - run: npm ci
       - run: npm test
       - run: npm run build
@@ -31,4 +36,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
-          command: pages deploy web/dist --project-name=asendus
+          command: pages deploy web/dist --project-name=asendus --branch=main

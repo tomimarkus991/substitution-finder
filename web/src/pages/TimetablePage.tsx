@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { fetchActiveTimetable } from '../api/queries'
@@ -8,6 +8,10 @@ import TeacherGrid from './timetable/TeacherGrid'
 export default function TimetablePage() {
   const qc = useQueryClient()
   const [selected, setSelected] = useState<string | null>(null)
+  const gridRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (selected) gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [selected])
   const { data: active, isLoading } = useQuery({ queryKey: ['timetable'], queryFn: fetchActiveTimetable })
   const setPlaceholder = useMutation({
     mutationFn: (v: { key: string; placeholder: boolean }) =>
@@ -53,7 +57,7 @@ export default function TimetablePage() {
           </ul>
         </section>
       )}
-      {selected && <TeacherGrid teacherKey={selected} />}
+      {selected && <div ref={gridRef}><TeacherGrid teacherKey={selected} /></div>}
     </div>
   )
 }
