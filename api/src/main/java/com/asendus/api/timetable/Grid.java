@@ -45,9 +45,4 @@ final class Grid {
     int day(PdfWord w) {
         return Math.clamp((int) Math.floor((w.y() - firstRowTop) / rowHeight) + 1, 1, DAYS);
     }
-
-    /** Period 1–7 whose column contains x. */
-    int period(float x) {
-        return Math.clamp((int) Math.floor((x - colLeft(1)) / colWidth) + 1, 1, PERIODS);
-    }
 }

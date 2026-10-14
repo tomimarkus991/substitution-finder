@@ -27,11 +27,12 @@ public class TimetablePdfParser {
     private static final List<String> DAY_LABELS = List.of("Es", "Te", "Ko", "Ne", "Re");
 
     // Font sizes (notes §1): header digits 19pt, day labels 43pt, labels and notes 10pt, class text 28pt.
+    // Class text is anything from 20pt up, so a larger or smaller class font still counts as a lesson.
     private static final float HEADER_DIGIT_MIN_SIZE = 15f;
     private static final float HEADER_DIGIT_MAX_SIZE = 25f;
     private static final float DAY_LABEL_MIN_SIZE = 35f;
     private static final float LABEL_SIZE = 10f;
-    private static final float CLASS_TEXT_SIZE = 28f;
+    private static final float CLASS_TEXT_MIN_SIZE = 20f;
     private static final float SIZE_TOLERANCE = 1f;
 
     /** A double lesson's class text is centered on the column boundary within 0.3pt; single cells are 52pt off (notes §4). */
@@ -45,6 +46,10 @@ public class TimetablePdfParser {
         public NotATimetableException(String message) {
             super(message);
         }
+
+        public NotATimetableException(String message, Throwable cause) {
+            super(message, cause);
+        }
     }
 
     public ParsedTimetable parse(byte[] pdf) {
@@ -54,28 +59,35 @@ public class TimetablePdfParser {
 
         try (PDDocument doc = Loader.loadPDF(pdf)) {
             for (int page = 1; page <= doc.getNumberOfPages(); page++) {
-                Optional<ParsedTeacher> parsed = parsePage(words(doc, page));
+                Optional<ParsedTeacher> parsed = parsePage(words(doc, page), page, warnings);
                 if (parsed.isEmpty()) {
                     warnings.add("Lk " + page + ": ei tundu õpetaja tunniplaanina, jäeti vahele");
                     continue;
                 }
                 ParsedTeacher teacher = parsed.get();
                 if (!keys.add(TeacherKey.of(teacher.name()))) {
-                    String renamed = teacher.name() + " (2)";
+                    String renamed = uniqueName(teacher.name(), keys);
                     warnings.add("Lk " + page + ": õpetaja \"" + teacher.name() + "\" on topelt, nimetatud \"" + renamed + "\"");
-                    keys.add(TeacherKey.of(renamed));
                     teacher = new ParsedTeacher(renamed, teacher.lessons());
                 }
                 teachers.add(teacher);
             }
         } catch (IOException e) {
-            throw new NotATimetableException("Faili ei õnnestunud PDF-ina lugeda");
+            throw new NotATimetableException("Faili ei õnnestunud PDF-ina lugeda", e);
         }
 
         if (teachers.isEmpty()) {
             throw new NotATimetableException("See ei tundu olevat aSc õpetajate tunniplaan");
         }
         return new ParsedTimetable(teachers, warnings);
+    }
+
+    /** "Name (2)", "Name (3)", …: the first suffix whose key is still free; claims it in {@code keys}. */
+    private static String uniqueName(String name, Set<String> keys) {
+        for (int n = 2; ; n++) {
+            String renamed = name + " (" + n + ")";
+            if (keys.add(TeacherKey.of(renamed))) return renamed;
+        }
     }
 
     /** One word per drawn text run; the spike found no run that spans two cells (notes §2). */
@@ -103,32 +115,42 @@ public class TimetablePdfParser {
                     && Math.abs(glyphs.get(i + 1).getXDirAdj() - g.getXDirAdj()) < 0.5f;
             if (!zeroAdvanceSpace) text.append(g.getUnicode());
         }
-        if (text.toString().isBlank()) return Optional.empty();
-        TextPosition first = glyphs.getFirst();
-        TextPosition last = glyphs.getLast();
+        List<TextPosition> visible = glyphs.stream().filter(g -> !g.getUnicode().isBlank()).toList();
+        if (visible.isEmpty()) return Optional.empty();
+        TextPosition first = visible.getFirst();
+        TextPosition last = visible.getLast();
         return Optional.of(new PdfWord(text.toString().trim(), first.getXDirAdj(), last.getXDirAdj() + last.getWidthDirAdj(),
                 first.getYDirAdj(), first.getFontSizeInPt()));
     }
 
-    private Optional<ParsedTeacher> parsePage(List<PdfWord> words) {
+    /** A silently dropped word could hide a lesson and make a busy teacher look free, so every unplaced word is warned about. */
+    private Optional<ParsedTeacher> parsePage(List<PdfWord> words, int page, List<String> warnings) {
         Optional<String> name = teacherName(words);
         Optional<Grid> grid = grid(words);
         if (name.isEmpty() || grid.isEmpty()) return Optional.empty();
 
-        List<PdfWord> cellWords = words.stream()
-                .filter(w -> isLabel(w) || isClassText(w))
-                .filter(grid.get()::contains)
-                .toList();
+        List<PdfWord> cellWords = new ArrayList<>();
+        for (PdfWord w : words) {
+            if (!grid.get().contains(w)) continue;
+            if (isLabel(w) || isClassText(w)) cellWords.add(w);
+            else warnUnplaced(w, page, warnings);
+        }
         List<ParsedLesson> lessons = new ArrayList<>();
         for (int day = 1; day <= Grid.DAYS; day++) {
             int d = day;
             List<PdfWord> row = cellWords.stream().filter(w -> grid.get().day(w) == d).toList();
-            for (Cell cell : cells(row, grid.get())) {
+            List<Cell> cells = cells(row, grid.get());
+            for (Cell cell : cells) {
                 lessons.addAll(lessons(cell, row.stream().filter(cell::covers).toList(), day));
             }
+            row.stream().filter(w -> cells.stream().noneMatch(c -> c.covers(w))).forEach(w -> warnUnplaced(w, page, warnings));
         }
         lessons.sort(Comparator.comparingInt(ParsedLesson::weekday).thenComparingInt(ParsedLesson::period));
         return Optional.of(new ParsedTeacher(name.get(), lessons));
+    }
+
+    private static void warnUnplaced(PdfWord w, int page, List<String> warnings) {
+        warnings.add("Lk " + page + ": tekst \"" + w.text() + "\" jäi paigutamata");
     }
 
     private static Optional<String> teacherName(List<PdfWord> words) {
@@ -161,7 +183,7 @@ public class TimetablePdfParser {
     }
 
     private static boolean isClassText(PdfWord w) {
-        return Math.abs(w.size() - CLASS_TEXT_SIZE) <= SIZE_TOLERANCE;
+        return w.size() >= CLASS_TEXT_MIN_SIZE;
     }
 
     /** A cell spans one period, or two when a double lesson's class text is centered on the boundary between them. */

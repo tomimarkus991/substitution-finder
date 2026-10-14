@@ -3,12 +3,17 @@ package com.asendus.api.timetable;
 import com.asendus.api.TestPdfs;
 import com.asendus.api.timetable.ParsedTimetable.ParsedLesson;
 import com.asendus.api.timetable.ParsedTimetable.ParsedTeacher;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -85,8 +90,23 @@ class TimetablePdfParserTest {
     @Test
     void splitsASplitCellIntoTwoLessons() {
         // Ambos Algi, Thursday period 5: 6M (219) and 6R (217)
-        assertThat(at("Ambos Algi", 4, 5)).extracting(ParsedLesson::classes, ParsedLesson::room)
-                .containsExactlyInAnyOrder(tuple("6M", "219"), tuple("6R", "217"));
+        assertThat(at("Ambos Algi", 4, 5)).extracting(ParsedLesson::classes, ParsedLesson::subject, ParsedLesson::room)
+                .containsExactlyInAnyOrder(tuple("6M", "Ettevõtlus/digi", "219"), tuple("6R", "Ettevõtlus/digi", "217"));
+    }
+
+    @Test
+    void keepsASplitHalfWithASubjectButNoRoom() {
+        assertThat(at("Randmaa Janell", 1, 6)).containsExactly(
+                new ParsedLesson(1, 6, "2.1", "Digikirjaoskus", "130", "grupp 1"),
+                new ParsedLesson(1, 6, "2.2", "Digikirjaoskus", "", "grupp 2"));
+    }
+
+    @Test
+    void keepsWholeFileTotalsStable() {
+        assertThat(b.teachers()).flatExtracting(ParsedTeacher::lessons).hasSize(810)
+                .filteredOn(l -> l.classes().isEmpty()).hasSize(1);
+        ParsedTimetable t = new TimetablePdfParser().parse(TestPdfs.load("opetajad-0304.pdf"));
+        assertThat(t.teachers()).flatExtracting(ParsedTeacher::lessons).hasSize(266);
     }
 
     @Test
@@ -133,6 +153,70 @@ class TimetablePdfParserTest {
         assertThat(t.warnings()).isEmpty();
         // Ambos Algi, Friday period 3
         assertThat(at(t, "Ambos Algi", 5, 3)).containsExactly(new ParsedLesson(5, 3, "5M/5MV", "Ettevõtlusõpe", "217", ""));
+    }
+
+    @Test
+    void renamesDuplicateTeachersAndSkipsForeignPages() throws Exception {
+        byte[] pdf = samplePages(doc -> {}, 0, 0, 0, -1, 1);
+        ParsedTimetable t = new TimetablePdfParser().parse(pdf);
+        assertThat(t.teachers()).extracting(ParsedTeacher::name)
+                .containsExactly("Bondar Julia", "Bondar Julia (2)", "Bondar Julia (3)", "Karamõkin Deniss");
+        assertThat(t.warnings()).containsExactly(
+                "Lk 2: õpetaja \"Bondar Julia\" on topelt, nimetatud \"Bondar Julia (2)\"",
+                "Lk 3: õpetaja \"Bondar Julia\" on topelt, nimetatud \"Bondar Julia (3)\"",
+                "Lk 4: ei tundu õpetaja tunniplaanina, jäeti vahele");
+    }
+
+    @Test
+    void warnsAboutTextItCannotPlaceAndReadsOddSizedClassText() throws Exception {
+        // Malken Mariliis (page 22) has an empty grid; draw into it.
+        byte[] pdf = samplePages(doc -> {
+            PDPage page = doc.getPage(0);
+            // Prepend: the aSc content leaves a scaled transform behind, which would move appended text.
+            try (var cs = new PDPageContentStream(doc, page, PDPageContentStream.AppendMode.PREPEND, true)) {
+                var font = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+                float height = page.getMediaBox().getHeight();
+                drawText(cs, font, 15, "Y", 350, height - 161);   // Monday period 3, an unknown size
+                drawText(cs, font, 22, "7A", 455, height - 253);  // Tuesday period 4, larger than labels
+            }
+        }, 21);
+        ParsedTimetable t = new TimetablePdfParser().parse(pdf);
+        assertThat(t.warnings()).containsExactly("Lk 1: tekst \"Y\" jäi paigutamata");
+        assertThat(teacher(t, "Malken Mariliis").lessons()).containsExactly(new ParsedLesson(2, 4, "7A", "", "", ""));
+    }
+
+    @Test
+    void rejectsBytesThatAreNotAPdf() {
+        assertThatThrownBy(() -> new TimetablePdfParser().parse("nope".getBytes()))
+                .isInstanceOf(TimetablePdfParser.NotATimetableException.class)
+                .hasMessage("Faili ei õnnestunud PDF-ina lugeda")
+                .hasCauseInstanceOf(IOException.class);
+    }
+
+    interface DocEdit {
+        void apply(PDDocument doc) throws IOException;
+    }
+
+    /** A PDF made of opetajad-b.pdf pages by zero-based index; -1 adds a blank page. */
+    static byte[] samplePages(DocEdit edit, int... pages) throws IOException {
+        try (var src = Loader.loadPDF(TestPdfs.load("opetajad-b.pdf")); var doc = new PDDocument();
+             var out = new ByteArrayOutputStream()) {
+            for (int p : pages) {
+                if (p < 0) doc.addPage(new PDPage());
+                else doc.importPage(src.getPage(p));
+            }
+            edit.apply(doc);
+            doc.save(out);
+            return out.toByteArray();
+        }
+    }
+
+    static void drawText(PDPageContentStream cs, PDType1Font font, float size, String text, float x, float y) throws IOException {
+        cs.beginText();
+        cs.setFont(font, size);
+        cs.newLineAtOffset(x, y);
+        cs.showText(text);
+        cs.endText();
     }
 
     @Test
