@@ -18,3 +18,6 @@ export const shiftSchoolDay = (iso: string, dir: 1 | -1) => {
   while (d.getDay() === 0 || d.getDay() === 6)
   return toIso(d)
 }
+
+/** "Reede 4.09.2026" */
+export const longDate = (iso: string) => `${weekdayName(iso)} ${shortDate(iso)}.${iso.slice(0, 4)}`
