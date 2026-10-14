@@ -52,6 +52,7 @@ export interface Substitution {
   substituteKeys: string[]
   substituteNames: string
   freeText: string
+  dutyLabel: string | null
 }
 export interface Absence {
   id: number
@@ -72,4 +73,24 @@ export interface Candidate {
   status: 'FREE' | 'ASK_FIRST'
   subjects: string[]
   todayCount: number
+  duties: string[]
+}
+
+// Break duties
+export interface TeacherOption { key: string; name: string }
+export interface UnresolvedDuty {
+  id: number
+  weekday: number
+  label: string
+  classGroup: string
+  rawName: string
+  candidates: TeacherOption[]
+}
+export interface DutySummary {
+  fileName: string
+  uploadedAt: string
+  dutyCount: number
+  teacherCount: number
+  warnings: string[]
+  unresolved: UnresolvedDuty[]
 }

@@ -6,13 +6,13 @@ const day: Day = {
   date: '2026-09-04', weekday: 5,
   absences: [
     { id: 2, teacherKey: 'randmaa janell', teacherName: 'Janell Randmaa', fromPeriod: 1, toPeriod: 7, rows: [
-      { id: 21, period: 5, classes: '2.3', subject: 'Ek', substituteKeys: ['utt merike'], substituteNames: 'Merike Utt', freeText: '' },
-      { id: 20, period: 2, classes: '2.3', subject: 'Ek', substituteKeys: ['kiik raina'], substituteNames: 'Raina Kiik', freeText: '' },
+      { id: 21, period: 5, classes: '2.3', subject: 'Ek', substituteKeys: ['utt merike'], substituteNames: 'Merike Utt', freeText: '', dutyLabel: null },
+      { id: 20, period: 2, classes: '2.3', subject: 'Ek', substituteKeys: ['kiik raina'], substituteNames: 'Raina Kiik', freeText: '', dutyLabel: null },
     ]},
     { id: 1, teacherKey: 'pärnpuu taimi', teacherName: 'Taimi Pärnpuu', fromPeriod: 1, toPeriod: 7, rows: [
-      { id: 10, period: 2, classes: '4R', subject: 'Ek', substituteKeys: ['põldma ragnar', 'rentel aivi'], substituteNames: 'Ragnar Põldma / Aivi Rentel', freeText: '' },
-      { id: 11, period: 6, classes: '6M', subject: 'Aj', substituteKeys: [], substituteNames: '', freeText: 'Koju' },
-      { id: 12, period: 4, classes: '4D', subject: 'Lo', substituteKeys: ['hirv eleriin'], substituteNames: 'Eleriin Hirv', freeText: 'tulevad hiljem' },
+      { id: 10, period: 2, classes: '4R', subject: 'Ek', substituteKeys: ['põldma ragnar', 'rentel aivi'], substituteNames: 'Ragnar Põldma / Aivi Rentel', freeText: '', dutyLabel: null },
+      { id: 11, period: 6, classes: '6M', subject: 'Aj', substituteKeys: [], substituteNames: '', freeText: 'Koju', dutyLabel: null },
+      { id: 12, period: 4, classes: '4D', subject: 'Lo', substituteKeys: ['hirv eleriin'], substituteNames: 'Eleriin Hirv', freeText: 'tulevad hiljem', dutyLabel: null },
     ]},
   ],
 }

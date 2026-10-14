@@ -7,6 +7,7 @@ import { PageTitle } from '../components/ui/PageTitle'
 import { cn } from '../lib/cn'
 import InfoTip from '../help/InfoTip'
 import UploadCard from './timetable/UploadCard'
+import DutyCard from './timetable/DutyCard'
 import TeacherGrid from './timetable/TeacherGrid'
 
 export default function TimetablePage() {
@@ -32,6 +33,7 @@ export default function TimetablePage() {
         Tunniplaan
       </PageTitle>
       <UploadCard />
+      <DutyCard />
       {isLoading && <p className="text-text-caption">Laen…</p>}
       {active === null && (
         <Card className="flex items-center gap-4 text-lg">
