@@ -9,7 +9,7 @@
     {
       "id": 1,
       "subject": "Task 1: Email allowlist on sign-in",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         0
       ]
@@ -17,7 +17,7 @@
     {
       "id": 2,
       "subject": "Task 2: PDF parsing spike",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         0
       ]
@@ -25,7 +25,7 @@
     {
       "id": 3,
       "subject": "Task 3: TeacherKey and parsed timetable model",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         0
       ]
@@ -33,7 +33,7 @@
     {
       "id": 4,
       "subject": "Task 4: TimetablePdfParser",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         2,
         3
@@ -42,7 +42,7 @@
     {
       "id": 5,
       "subject": "Task 5: Eligibility rules",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         0
       ]
@@ -50,7 +50,7 @@
     {
       "id": 6,
       "subject": "Task 6: Database schema and entities",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         1
       ]
@@ -58,7 +58,7 @@
     {
       "id": 7,
       "subject": "Task 7: Timetable upload, preview, activate, grid, placeholders",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         4,
         6
@@ -67,7 +67,7 @@
     {
       "id": 8,
       "subject": "Task 8: Days, absences, candidates, substitutions",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         5,
         7
@@ -76,7 +76,7 @@
     {
       "id": 9,
       "subject": "Task 9: Web app scaffold with Google sign-in",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         1
       ]
@@ -84,7 +84,7 @@
     {
       "id": 10,
       "subject": "Task 10: Tunniplaan page",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         7,
         9
@@ -93,7 +93,7 @@
     {
       "id": 11,
       "subject": "Task 11: Täna page",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         8,
         10
@@ -102,7 +102,7 @@
     {
       "id": 12,
       "subject": "Task 12: Day table, copy and print",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         11
       ]
@@ -110,7 +110,7 @@
     {
       "id": 13,
       "subject": "Task 13: Ajalugu page",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         11
       ]
@@ -118,7 +118,7 @@
     {
       "id": 14,
       "subject": "Task 14: Deploy setup",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         12,
         13
@@ -127,11 +127,11 @@
     {
       "id": 15,
       "subject": "Task 15: End-to-end check",
-      "status": "pending",
+      "status": "in_progress",
       "blockedBy": [
         14
       ]
     }
   ],
-  "lastUpdated": "2026-10-14T11:15:00"
+  "lastUpdated": "2026-10-14T12:03:18"
 }
