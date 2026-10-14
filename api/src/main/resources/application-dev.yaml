@@ -1,0 +1,6 @@
+app:
+  jwt:
+    secret: dev-only-secret-that-is-at-least-32-bytes-long
+  auth:
+    skip-google-verification: true
+    dev-user-email: dev@asendus.app

@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: api
+  main:
+    banner-mode: off
+  threads:
+    virtual:
+      enabled: true
+  jpa:
+    open-in-view: false
+    # Flyway builds the DB. Hibernate just double-checks that the Java models match.
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 100
+        order_inserts: true
+
+server:
+  servlet:
+    context-path: /api/v1
+  # Behind Traefik in production: trust its X-Forwarded-* headers for the real scheme and host
+  forward-headers-strategy: framework
+  # Never expose stack traces or raw exception messages in HTTP error responses
+  error:
+    include-stacktrace: never
+    include-message: never
+
+app:
+  jwt:
+    # At least 32 characters (HS256)
+    secret: ${JWT_SECRET:}
+    expiration: 30d
+  auth:
+    # Comma-separated Google OAuth client IDs whose ID tokens we accept (the Android app sends the web client ID)
+    google-client-ids: ${GOOGLE_CLIENT_IDS:}
+    skip-google-verification: false
+
+# Only report warnings and errors, except INFO logs for our own code
+logging:
+  level:
+    root: WARN
+    com.asendus: INFO
