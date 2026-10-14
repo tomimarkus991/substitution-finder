@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import type { Absence, TeacherSummary } from '../../api/types'
+import { Card } from '../../components/ui/Card'
+import { RealButton } from '../../components/ui/RealButton'
 
 const PERIODS = [1, 2, 3, 4, 5, 6, 7]
 const MAX_MATCHES = 8
@@ -45,37 +47,35 @@ export default function AddAbsenceForm({ date, teachers, absentKeys }: Props) {
   const pick = (t: TeacherSummary) => { setTeacher(t); setQuery('') }
 
   return (
-    <section className="rounded-lg border border-gray-200 bg-white p-4">
-      <h2 className="mb-3 font-semibold">Lisa puuduja</h2>
+    <Card>
+      <h2 className="mb-3 text-lg font-bold">Lisa puuduja</h2>
 
       {teacher ? (
-        <div className="mb-3 flex min-h-11 items-center justify-between gap-2 rounded bg-blue-50 px-3">
-          <span className="font-medium">{label(teacher)}</span>
-          <button onClick={() => setTeacher(null)} className="min-h-11 px-2 text-sm text-blue-700 hover:underline">
-            Muuda
-          </button>
+        <div className="mb-4 flex min-h-11 items-center justify-between gap-2 rounded-2xl bg-sky-50 py-1 pr-1 pl-4">
+          <span className="font-semibold text-casual-sky-blue-darker">{label(teacher)}</span>
+          <RealButton variant="light" size="xs" onClick={() => setTeacher(null)}>Muuda</RealButton>
         </div>
       ) : (
-        <div className="mb-3">
+        <div className="relative mb-4">
           <input
             type="search"
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && matches[0]) { e.preventDefault(); pick(matches[0]) } }}
-            placeholder="Otsi õpetajat nime järgi"
+            placeholder="🔍  Otsi õpetajat nime järgi"
             aria-label="Õpetaja"
-            className="min-h-11 w-full rounded border border-gray-300 px-3"
+            className="field w-full"
           />
           {q && (
-            <ul className="mt-1 divide-y divide-gray-100 rounded border border-gray-200">
+            <ul className="absolute inset-x-0 top-full z-10 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
               {matches.map(t => (
                 <li key={t.key}>
-                  <button onClick={() => pick(t)} className="min-h-11 w-full px-3 text-left hover:bg-gray-50">
+                  <button onClick={() => pick(t)} className="min-h-11 w-full px-4 text-left font-medium hover:bg-sky-50">
                     {label(t)}
                   </button>
                 </li>
               ))}
-              {matches.length === 0 && <li className="px-3 py-2 text-sm text-gray-500">Ei leidnud</li>}
+              {matches.length === 0 && <li className="px-4 py-3 text-text-caption">Ei leidnud</li>}
             </ul>
           )}
         </div>
@@ -84,16 +84,18 @@ export default function AddAbsenceForm({ date, teachers, absentKeys }: Props) {
       <div className="flex flex-wrap items-end gap-3">
         <PeriodSelect label="Alates tunnist" value={from} onChange={setFrom} />
         <PeriodSelect label="Kuni tunnini" value={to} onChange={setTo} />
-        <button
+        <RealButton
+          variant="sky"
+          size="sm"
+          className="w-full sm:ml-auto sm:w-auto"
           onClick={() => add.mutate()}
           disabled={!teacher || !rangeOk || add.isPending}
-          className="min-h-11 w-full rounded bg-blue-600 px-4 font-medium text-white disabled:opacity-50 sm:w-auto"
         >
-          Lisa puuduja
-        </button>
+          + Lisa puuduja
+        </RealButton>
       </div>
-      {!rangeOk && <p className="mt-2 text-sm text-red-700">Algustund ei saa olla pärast lõputundi</p>}
-    </section>
+      {!rangeOk && <p className="mt-2 text-sm font-medium text-casual-red-darker">Algustund ei saa olla pärast lõputundi</p>}
+    </Card>
   )
 }
 
@@ -101,14 +103,10 @@ const label = (t: TeacherSummary) => (t.placeholder ? `${t.displayName} (koht)` 
 
 function PeriodSelect({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
-    <label className="flex flex-1 flex-col text-sm text-gray-700 sm:flex-none">
+    <label className="flex flex-1 flex-col text-sm font-semibold text-text-caption sm:flex-none">
       {label}
-      <select
-        value={value}
-        onChange={e => onChange(Number(e.target.value))}
-        className="mt-1 min-h-11 rounded border border-gray-300 bg-white px-3 text-base text-gray-900"
-      >
-        {PERIODS.map(p => <option key={p} value={p}>{p}.</option>)}
+      <select value={value} onChange={e => onChange(Number(e.target.value))} className="field mt-1">
+        {PERIODS.map(p => <option key={p} value={p}>{p}. tund</option>)}
       </select>
     </label>
   )

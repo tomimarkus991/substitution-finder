@@ -23,7 +23,8 @@ const realButtonVariants = cva(
       },
       size: {
         xs: 'py-1.5 px-4 text-sm rounded-xl',
-        sm: 'py-2 px-6 text-sm rounded-2xl',
+        sm: 'min-h-11 py-1.5 px-5 text-sm rounded-2xl',
+        icon: 'h-11 w-11 p-0 text-xl rounded-xl',
         md: 'py-2.5 px-10 text-base rounded-2xl',
         lg: 'py-3 px-12 text-lg rounded-2xl',
       },

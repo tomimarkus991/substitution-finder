@@ -19,7 +19,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext value={{ showError }}>
       {children}
       {message && (
-        <div role="alert" className="no-print fixed bottom-4 left-1/2 -translate-x-1/2 rounded bg-red-600 px-4 py-2 text-white shadow-lg">
+        <div role="alert" className="no-print fixed bottom-4 left-1/2 -translate-x-1/2 rounded-2xl bg-casual-red px-5 py-3 font-semibold text-white shadow-lg">
           {message}
         </div>
       )}

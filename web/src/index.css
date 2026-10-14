@@ -36,3 +36,8 @@
   .print-only { display: block; }
   body { background: white; }
 }
+
+/* Text inputs and selects share one look */
+@utility field {
+  @apply min-h-11 rounded-2xl border-2 border-slate-200 bg-white px-4 text-base text-text-primary outline-none transition-colors focus:border-casual-sky-blue;
+}

@@ -2,6 +2,9 @@ import { useRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import type { TimetablePreview } from '../../api/types'
+import { Card } from '../../components/ui/Card'
+import { RealButton } from '../../components/ui/RealButton'
+import { cn } from '../../lib/cn'
 
 export default function UploadCard() {
   const qc = useQueryClient()
@@ -24,42 +27,69 @@ export default function UploadCard() {
   const p = upload.data
 
   return (
-    <section className="rounded-lg border border-gray-200 bg-white p-4">
-      <h2 className="mb-3 font-semibold">Lae üles uus tunniplaan</h2>
-      <input
-        ref={input}
-        type="file"
-        accept="application/pdf"
-        disabled={upload.isPending}
-        onChange={e => {
-          const f = e.target.files?.[0]
-          e.target.value = '' // so the same file can be picked again after a failure
-          if (f) upload.mutate(f)
-        }}
-        className="block w-full text-sm file:mr-3 file:rounded file:border-0 file:bg-gray-100 file:px-3 file:py-2"
-      />
-      {upload.isPending && <p className="mt-3 text-sm text-gray-600">Töötlen faili…</p>}
+    <Card>
+      <h2 className="mb-3 text-lg font-bold">Lae üles uus tunniplaan</h2>
+      <label
+        className={cn(
+          'flex cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-casual-sky-blue-outline bg-sky-50 px-4 py-8 text-center transition-colors hover:bg-sky-100',
+          upload.isPending && 'cursor-wait opacity-60',
+        )}
+      >
+        <span aria-hidden className="text-3xl">📄</span>
+        <span className="font-bold text-casual-sky-blue-darker">
+          {upload.isPending ? 'Töötlen faili…' : 'Vali tunniplaani PDF'}
+        </span>
+        <span className="text-sm text-text-caption">aSc õpetajate tunniplaan</span>
+        <input
+          ref={input}
+          type="file"
+          accept="application/pdf"
+          disabled={upload.isPending}
+          onChange={e => {
+            const f = e.target.files?.[0]
+            e.target.value = '' // so the same file can be picked again after a failure
+            if (f) upload.mutate(f)
+          }}
+          className="sr-only"
+        />
+      </label>
+
       {p && (
-        <div className="mt-4 space-y-2 text-sm">
-          <p className="font-medium">{p.fileName}: {p.teacherCount} õpetajat, {p.lessonCount} tundi</p>
-          {p.addedTeachers.length > 0 && <p>Uued: {p.addedTeachers.join(', ')}</p>}
-          {p.removedTeachers.length > 0 && <p>Eemaldatud: {p.removedTeachers.join(', ')}</p>}
+        <div className="mt-5 space-y-3">
+          <p className="font-semibold">{p.fileName}</p>
+          <div className="flex flex-wrap gap-2">
+            <Stat value={p.teacherCount} label="õpetajat" />
+            <Stat value={p.lessonCount} label="tundi" />
+            {p.warnings.length > 0 && <Stat value={p.warnings.length} label="hoiatust" warn />}
+          </div>
+          {p.addedTeachers.length > 0 && <p><span className="font-semibold">Uued:</span> {p.addedTeachers.join(', ')}</p>}
+          {p.removedTeachers.length > 0 && <p><span className="font-semibold">Eemaldatud:</span> {p.removedTeachers.join(', ')}</p>}
           {p.warnings.map((w, i) => (
-            <p key={i} className="rounded bg-amber-50 px-3 py-2 text-amber-800">{w}</p>
+            <p key={i} className="rounded-2xl bg-orange-50 px-4 py-2 text-sm text-casual-orange-darker">{w}</p>
           ))}
           {p.active ? (
-            <p className="text-green-700">See tunniplaan on juba aktiivne.</p>
+            <p className="font-semibold text-casual-green-darker">✓ See tunniplaan on juba aktiivne</p>
           ) : (
-            <button
+            <RealButton
+              variant="green"
+              size="sm"
+              className="w-full sm:w-auto"
               onClick={() => activate.mutate(p.id)}
               disabled={activate.isPending}
-              className="w-full rounded bg-blue-600 px-4 py-2 font-medium text-white disabled:opacity-50 sm:w-auto"
             >
               Aktiveeri
-            </button>
+            </RealButton>
           )}
         </div>
       )}
-    </section>
+    </Card>
+  )
+}
+
+function Stat({ value, label, warn }: { value: number; label: string; warn?: boolean }) {
+  return (
+    <span className={cn('rounded-2xl px-4 py-2', warn ? 'bg-orange-50 text-casual-orange-darker' : 'bg-slate-100')}>
+      <span className="text-xl font-extrabold">{value}</span> <span className="text-sm">{label}</span>
+    </span>
   )
 }

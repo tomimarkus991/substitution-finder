@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import type { Candidate, Day, Substitution } from '../../api/types'
+import { RealButton } from '../../components/ui/RealButton'
+import { cn } from '../../lib/cn'
 import { subjectName } from '../../lib/subjects'
 
 const QUICK_TEXTS = ['Koju', 'Tulevad hiljem', 'Klass kokku', 'Iseseisev töö']
@@ -58,25 +60,25 @@ export default function CandidatePicker({ date, row, onClose }: Props) {
   const askFirst = others.filter(c => c.status === 'ASK_FIRST')
 
   return (
-    <div className="space-y-4 border-t border-gray-100 bg-gray-50 px-3 py-3">
+    <div className="space-y-5 border-t-2 border-slate-100 bg-surface-bg px-4 py-4">
       {current.substituteKeys.length > 0 && (
         <Group title="Valitud">
           {current.substituteKeys.map(k => (
             <ToggleButton key={k} selected onClick={() => toggle(k)}>
-              <span className="font-medium">✓ {names.get(k) ?? k}</span>
+              <span>✓ {names.get(k) ?? k}</span>
             </ToggleButton>
           ))}
         </Group>
       )}
 
-      {candidates.isLoading && <p className="text-sm text-gray-600">Laen vabu õpetajaid…</p>}
+      {candidates.isLoading && <p className="text-sm text-text-caption">Laen vabu õpetajaid…</p>}
       {candidates.data && (
         <>
-          <Group title="Vaba" dot="bg-green-500" empty={free.length === 0 ? 'Vabu õpetajaid pole' : undefined}>
+          <Group title="Vaba" dot="bg-casual-green" empty={free.length === 0 ? 'Vabu õpetajaid pole' : undefined}>
             {free.map(c => <CandidateButton key={c.key} candidate={c} onClick={() => toggle(c.key)} />)}
           </Group>
           {askFirst.length > 0 && (
-            <Group title="Küsi enne" hint="peaks tulema tund varem" dot="bg-amber-500">
+            <Group title="Küsi enne" hint="peaks tulema tund varem" dot="bg-casual-orange">
               {askFirst.map(c => <CandidateButton key={c.key} candidate={c} onClick={() => toggle(c.key)} />)}
             </Group>
           )}
@@ -98,14 +100,12 @@ export default function CandidatePicker({ date, row, onClose }: Props) {
         onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
         placeholder="Oma tekst (salvestub Enteriga)"
         aria-label="Oma tekst"
-        className="min-h-11 w-full rounded border border-gray-300 bg-white px-3"
+        className="field w-full"
       />
 
       <div className="flex items-center justify-between gap-3">
-        <span className="text-sm text-gray-500" aria-live="polite">{saving ? 'Salvestan…' : ''}</span>
-        <button onClick={onClose} className="min-h-11 rounded bg-gray-800 px-6 font-medium text-white">
-          Valmis
-        </button>
+        <span className="text-sm text-text-caption" aria-live="polite">{saving ? 'Salvestan…' : ''}</span>
+        <RealButton variant="dark" size="sm" onClick={onClose}>Valmis</RealButton>
       </div>
     </div>
   )
@@ -116,26 +116,35 @@ type GroupProps = { title: string; hint?: string; dot?: string; empty?: string; 
 function Group({ title, hint, dot, empty, children }: GroupProps) {
   return (
     <div>
-      <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold text-gray-700">
-        {dot && <span className={`h-2.5 w-2.5 rounded-full ${dot}`} />}
+      <h3 className="mb-2 flex items-center gap-2 text-sm font-bold">
+        {dot && <span className={cn('h-3 w-3 rounded-full', dot)} />}
         {title}
-        {hint && <span className="font-normal text-gray-500">· {hint}</span>}
+        {hint && <span className="font-normal text-text-caption">· {hint}</span>}
       </h3>
-      {empty ? <p className="text-sm text-gray-500">{empty}</p> : <div className="flex flex-wrap gap-2">{children}</div>}
+      {empty ? <p className="text-sm text-text-caption">{empty}</p> : <div className="flex flex-wrap gap-2">{children}</div>}
     </div>
   )
 }
 
 function CandidateButton({ candidate: c, onClick }: { candidate: Candidate; onClick: () => void }) {
-  const tone = c.status === 'FREE' ? 'border-green-300 bg-green-50 hover:bg-green-100' : 'border-amber-300 bg-amber-50 hover:bg-amber-100'
+  const tone =
+    c.status === 'FREE'
+      ? 'border-casual-green-outline border-b-casual-green bg-green-50 hover:bg-green-100'
+      : 'border-casual-orange-outline border-b-casual-orange bg-orange-50 hover:bg-orange-100'
   return (
-    <button onClick={onClick} className={`min-h-11 w-full rounded border px-3 py-1.5 text-left sm:w-auto ${tone}`}>
-      <span className="block font-medium">{c.name}</span>
+    <button
+      onClick={onClick}
+      className={cn(
+        'min-h-11 w-full rounded-2xl border-2 border-b-4 px-4 py-2 text-left transition-transform hover:-translate-y-0.5 active:translate-y-0.5 sm:w-auto',
+        tone,
+      )}
+    >
+      <span className="block font-bold">{c.name}</span>
       {(c.subjects.length > 0 || c.todayCount > 0) && (
-        <span className="block text-xs text-gray-600">
+        <span className="block text-xs text-text-caption">
           {c.subjects.map(subjectName).join(', ')}
           {c.subjects.length > 0 && c.todayCount > 0 && ' · '}
-          {c.todayCount > 0 && <span className="font-medium text-gray-800">täna {c.todayCount} {c.todayCount === 1 ? 'asendus' : 'asendust'}</span>}
+          {c.todayCount > 0 && <span className="font-bold text-text-primary">täna {c.todayCount} {c.todayCount === 1 ? 'asendus' : 'asendust'}</span>}
         </span>
       )}
     </button>
@@ -147,9 +156,12 @@ function ToggleButton({ selected, onClick, children }: { selected: boolean; onCl
     <button
       onClick={onClick}
       aria-pressed={selected}
-      className={`min-h-11 rounded border px-3 ${
-        selected ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white text-gray-900 hover:bg-gray-100'
-      }`}
+      className={cn(
+        'min-h-11 rounded-2xl border-2 border-b-4 px-4 font-semibold transition-transform hover:-translate-y-0.5 active:translate-y-0.5',
+        selected
+          ? 'border-casual-sky-blue-darker bg-casual-sky-blue text-white'
+          : 'border-slate-200 bg-white text-text-primary hover:bg-slate-50',
+      )}
     >
       {children}
     </button>

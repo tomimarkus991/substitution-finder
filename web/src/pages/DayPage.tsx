@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { fetchActiveTimetable } from '../api/queries'
 import type { Day } from '../api/types'
+import { Card } from '../components/ui/Card'
+import { RealButton } from '../components/ui/RealButton'
 import { isIsoDate, isWeekend, shiftSchoolDay, shortDate, todayIso, weekdayName } from '../lib/dates'
 import AddAbsenceForm from './day/AddAbsenceForm'
 import AbsenceCard from './day/AbsenceCard'
@@ -30,16 +32,16 @@ function DayView({ date }: { date: string }) {
   const absentKeys = new Set(absences.map(a => a.teacherKey))
 
   return (
-    <div className="space-y-4">
-      <div className="no-print space-y-4">
+    <div className="space-y-5">
+      <div className="no-print space-y-5">
         <DateHeader date={date} />
 
         {weekend ? (
-          <Notice>Nädalavahetusel tunde pole</Notice>
+          <Notice emoji="🌤️">Nädalavahetusel tunde pole</Notice>
         ) : timetable.data === null ? (
-          <Notice>
+          <Notice emoji="📄">
             Lae esmalt tunniplaan üles.{' '}
-            <Link to="/tunniplaan" className="font-medium text-blue-700 underline">Tunniplaani lehele</Link>
+            <Link to="/tunniplaan" className="font-semibold text-casual-sky-blue-darker underline">Tunniplaani lehele</Link>
           </Notice>
         ) : (
           <>
@@ -47,10 +49,11 @@ function DayView({ date }: { date: string }) {
               <AddAbsenceForm date={date} teachers={timetable.data.teachers} absentKeys={absentKeys} />
             )}
 
-            {day.isLoading && <p className="text-sm text-gray-600">Laen…</p>}
+            {day.isLoading && <p className="text-text-caption">Laen…</p>}
             {day.data && absences.length === 0 && (
-              <p className="text-gray-600">Sel päeval pole veel ühtegi puudujat.</p>
+              <Notice emoji="✨">Sel päeval pole veel ühtegi puudujat.</Notice>
             )}
+            {absences.length > 0 && <Progress day={day.data!} />}
             {absences.map(a => (
               <AbsenceCard key={a.id} date={date} absence={a} openRow={openRow} onOpenRow={setOpenRow} />
             ))}
@@ -67,33 +70,63 @@ function DateHeader({ date }: { date: string }) {
   const navigate = useNavigate()
   const go = (d: string) => navigate(`/paev/${d}`)
   const today = todayIso()
-  const navButton = 'flex min-h-11 min-w-11 items-center justify-center rounded border border-gray-300 bg-white text-xl hover:bg-gray-50'
 
   return (
-    <header className="space-y-2">
-      <h1 className="text-2xl font-semibold">
-        {weekdayName(date)} {shortDate(date)}
+    <header className="flex flex-wrap items-end justify-between gap-4">
+      <h1 className="text-4xl leading-none font-extrabold tracking-tight">
+        <span className="bg-gradient-to-r from-casual-sky-blue-darker to-cyan-500 bg-clip-text text-transparent">
+          {weekdayName(date)}
+        </span>{' '}
+        {shortDate(date)}
       </h1>
-      <div className="flex flex-wrap items-center gap-2">
-        <button onClick={() => go(shiftSchoolDay(date, -1))} className={navButton} aria-label="Eelmine koolipäev">‹</button>
+      <div className="flex items-center gap-2">
+        <RealButton variant="light" size="icon" onClick={() => go(shiftSchoolDay(date, -1))} aria-label="Eelmine koolipäev">‹</RealButton>
         <input
           type="date"
           value={date}
           onChange={e => { if (isIsoDate(e.target.value)) go(e.target.value) }}
           aria-label="Kuupäev"
-          className="min-h-11 rounded border border-gray-300 bg-white px-3"
+          className="field"
         />
-        <button onClick={() => go(shiftSchoolDay(date, 1))} className={navButton} aria-label="Järgmine koolipäev">›</button>
+        <RealButton variant="light" size="icon" onClick={() => go(shiftSchoolDay(date, 1))} aria-label="Järgmine koolipäev">›</RealButton>
         {date !== today && (
-          <button onClick={() => go(today)} className="min-h-11 rounded px-3 text-blue-700 hover:underline">
-            Täna
-          </button>
+          <RealButton variant="sky" size="sm" onClick={() => go(today)}>Täna</RealButton>
         )}
       </div>
     </header>
   )
 }
 
-function Notice({ children }: { children: React.ReactNode }) {
-  return <p className="rounded-lg border border-gray-200 bg-white p-4 text-gray-700">{children}</p>
+/** "7 / 10 tundi kaetud" with a bar, so it's obvious when the morning's work is done. */
+function Progress({ day }: { day: Day }) {
+  const rows = day.absences.flatMap(a => a.rows)
+  const done = rows.filter(r => r.substituteKeys.length > 0 || r.freeText).length
+  const pct = rows.length ? Math.round((done / rows.length) * 100) : 100
+  const finished = done === rows.length
+
+  return (
+    <div className="flex items-center gap-4 rounded-3xl bg-white px-5 py-4 shadow-sm">
+      <div className="flex-1">
+        <p className="font-semibold">
+          {finished ? 'Kõik tunnid on kaetud 🎉' : `${done} / ${rows.length} tundi kaetud`}
+        </p>
+        <div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-100">
+          <div
+            className={finished ? 'h-full rounded-full bg-casual-green transition-all' : 'h-full rounded-full bg-casual-orange transition-all'}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+      <span className="text-2xl font-extrabold text-text-caption">{day.absences.length}<span className="ml-1 text-sm font-semibold">puudujat</span></span>
+    </div>
+  )
+}
+
+function Notice({ emoji, children }: { emoji: string; children: React.ReactNode }) {
+  return (
+    <Card className="flex items-center gap-4 text-lg">
+      <span aria-hidden className="text-3xl">{emoji}</span>
+      <p>{children}</p>
+    </Card>
+  )
 }
