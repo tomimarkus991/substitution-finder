@@ -38,6 +38,8 @@ export default function TimetablePage() {
           <p>Tunniplaani pole veel üles laetud</p>
         </Card>
       )}
+      {selected && <div ref={gridRef} className="scroll-mt-20"><TeacherGrid teacherKey={selected} /></div>}
+
       {active && (
         <Card>
           <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
@@ -77,7 +79,6 @@ export default function TimetablePage() {
           </ul>
         </Card>
       )}
-      {selected && <div ref={gridRef} className="scroll-mt-20"><TeacherGrid teacherKey={selected} /></div>}
     </div>
   )
 }
