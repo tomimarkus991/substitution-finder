@@ -12,7 +12,7 @@ export default function GuidePage() {
       <Step n={1} color="bg-casual-sky-blue" title="Lae tunniplaan üles" when="kui tunniplaan muutub">
         <p>
           Ava <Link to="/tunniplaan" className="font-semibold text-casual-sky-blue-darker hover:underline">Tunniplaan</Link>{' '}
-          ja vali kooli õpetajate tunniplaani PDF (sama, mis aSc-st tuleb).
+          ja vali kooli õpetajate tunniplaani PDF. See on see fail, kus iga õpetaja nädal on eraldi lehel, pealkirjaga „Õpetaja …“.
         </p>
         <p>
           Eelvaates näed õpetajate ja tundide arvu ning kes on uued või eemaldatud. Kui midagi jäi lugemata, on all
