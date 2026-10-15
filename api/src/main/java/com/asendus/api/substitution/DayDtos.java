@@ -27,9 +27,12 @@ public final class DayDtos {
                                        @Min(1) @Max(7) Integer fromPeriod,
                                        @Min(1) @Max(7) Integer toPeriod) {}
 
-    /** duties: labels of the candidate's break duties in the requested period. */
+    /**
+     * duties: labels of the candidate's break duties in the requested period. day: their 7 periods.
+     * streak: periods in a row they'd work if they take this one.
+     */
     public record CandidateDto(String key, String name, Availability status, List<String> subjects, int todayCount,
-                           List<String> duties) {}
+                               List<String> duties, List<DaySlot> day, int streak) {}
 
     /** One period of a candidate's day. label: "4R · Ek" (several joined with "; "), a duty label, or "". */
     public record DaySlot(int period, SlotKind kind, String label) {}

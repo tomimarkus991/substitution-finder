@@ -7,6 +7,7 @@ import com.asendus.api.substitution.DayDtos.AbsenceDto;
 import com.asendus.api.substitution.DayDtos.CandidateDto;
 import com.asendus.api.substitution.DayDtos.CreateAbsenceRequest;
 import com.asendus.api.substitution.DayDtos.DayDto;
+import com.asendus.api.substitution.DayDtos.DaySlot;
 import com.asendus.api.substitution.DayDtos.SubstitutionDto;
 import com.asendus.api.substitution.DayDtos.UpdateSubstitutionRequest;
 import com.asendus.api.timetable.Lesson;
@@ -174,6 +175,7 @@ public class SubstitutionService {
         Map<String, Integer> todayCounts = todayCounts(rows);
         Map<String, List<String>> subjects = timetableService.subjectsByTeacherKey();
         Map<String, List<Duty>> duties = dutyService.dutiesOn(weekday);
+        Map<String, List<Substitution>> substituting = substitutingByKey(rows);
 
         List<CandidateDto> out = new ArrayList<>();
         lessons.forEach((teacher, dayLessons) -> {
@@ -182,8 +184,11 @@ public class SubstitutionService {
             if (status != Availability.HIDDEN) {
                 List<String> dutyLabels = duties.getOrDefault(key, List.of()).stream()
                         .filter(d -> d.getPeriod() == period).map(DutyLabels::label).toList();
+                List<DaySlot> day = DayStrip.of(dayLessons, substituting.getOrDefault(key, List.of()),
+                        duties.getOrDefault(key, List.of()));
                 out.add(new CandidateDto(key, TeacherKey.displayName(teacher.getName()), status,
-                        subjects.getOrDefault(key, List.of()), todayCounts.getOrDefault(key, 0), dutyLabels));
+                        subjects.getOrDefault(key, List.of()), todayCounts.getOrDefault(key, 0), dutyLabels,
+                        day, DayStrip.streak(day, period)));
             }
         });
         out.sort(CANDIDATE_ORDER);
@@ -208,6 +213,15 @@ public class SubstitutionService {
                 .filter(r -> r.getPeriod() == period)
                 .flatMap(r -> r.getSubstituteKeys().stream())
                 .collect(Collectors.toSet());
+    }
+
+    /** Per teacher key, the rows they substitute on that day. */
+    private static Map<String, List<Substitution>> substitutingByKey(List<Substitution> rows) {
+        Map<String, List<Substitution>> out = new HashMap<>();
+        for (Substitution r : rows) {
+            for (String key : r.getSubstituteKeys()) out.computeIfAbsent(key, k -> new ArrayList<>()).add(r);
+        }
+        return out;
     }
 
     /** Per teacher key, the number of distinct periods that day in which they substitute. */

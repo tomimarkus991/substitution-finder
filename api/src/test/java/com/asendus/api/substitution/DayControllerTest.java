@@ -332,6 +332,27 @@ class DayControllerTest extends IntegrationTest {
     }
 
     @Test
+    void candidatesCarryTheirDay() throws Exception {
+        // Pärnpuu Taimi on Friday: periods 1 (4R Ek), 2, 3, 4, 6 → free in 5, so 1..6 in a row
+        String taimi = "pärnpuu taimi";
+        candidates(5)
+                .andExpect(jsonPath(byKey(taimi) + ".day[*].period", contains(1, 2, 3, 4, 5, 6, 7)))
+                .andExpect(jsonPath(byKey(taimi) + ".day[0].kind", contains("LESSON")))
+                .andExpect(jsonPath(byKey(taimi) + ".day[0].label", contains("4R · Ek")))
+                .andExpect(jsonPath(byKey(taimi) + ".day[4].kind", contains("EMPTY")))
+                .andExpect(jsonPath(byKey(taimi) + ".streak", contains(6)));
+
+        // She takes someone's period-5 lesson → slot 5 is SUBSTITUTING, and taking period 7 too makes 1..7 in a row
+        String other = first(ps -> ps.contains(5));
+        String absence = absent(other, 5, 5);
+        putSubstitution(id(absence, "$.rows[0].id"), "{\"substituteKeys\":[\"" + taimi + "\"],\"freeText\":\"\"}")
+                .andExpect(status().isOk());
+        candidates(7)
+                .andExpect(jsonPath(byKey(taimi) + ".day[4].kind", contains("SUBSTITUTING")))
+                .andExpect(jsonPath(byKey(taimi) + ".streak", contains(7)));
+    }
+
+    @Test
     void absentTeacherIsNotACandidateDuringTheirAbsence() throws Exception {
         String x = first(ps -> !ps.isEmpty() && !ps.contains(4) && Collections.min(ps) < 4 && Collections.max(ps) > 4);
 
