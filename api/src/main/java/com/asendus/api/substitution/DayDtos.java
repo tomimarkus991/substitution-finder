@@ -29,10 +29,11 @@ public final class DayDtos {
 
     /**
      * duties: labels of the candidate's break duties in the requested period. day: their 7 periods.
-     * streak: periods in a row they'd work if they take this one.
+     * streak: periods in a row they'd work if they take this one. parallelLesson: for PARALLEL, their own lesson
+     * in that period ("7A/7B · Sk", several joined with "; "); null otherwise.
      */
     public record CandidateDto(String key, String name, Availability status, List<String> subjects, int todayCount,
-                               List<String> duties, List<DaySlot> day, int streak) {}
+                               List<String> duties, List<DaySlot> day, int streak, String parallelLesson) {}
 
     /** One period of a candidate's day. label: "4R · Ek" (several joined with "; "), a duty label, or "". */
     public record DaySlot(int period, SlotKind kind, String label) {}

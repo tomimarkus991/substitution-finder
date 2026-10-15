@@ -31,11 +31,6 @@ public class SubstitutionService {
     private static final int LAST_PERIOD = 7;
     private static final Comparator<Substitution> ROW_ORDER =
             Comparator.comparingInt(Substitution::getPeriod).thenComparing(Substitution::getId);
-    private static final Comparator<CandidateDto> CANDIDATE_ORDER = Comparator
-            .comparing(CandidateDto::status)               // FREE before ASK_FIRST (enum order)
-            .thenComparing(c -> !c.duties().isEmpty())     // a break duty in this period → after the others
-            .thenComparingInt(CandidateDto::todayCount)
-            .thenComparing(CandidateDto::name, TeacherKey.DISPLAY_ORDER);
     private static final String NAME_SEPARATOR = " / ";
 
     private final TimetableService timetableService;
@@ -157,13 +152,15 @@ public class SubstitutionService {
     /**
      * Who can cover period p on the date: every active-version teacher who teaches that weekday, except
      * placeholders, teachers absent in p and teachers already substituting in p. HIDDEN ones are left out.
+     * With a row, teachers whose own lesson in p shares a class with it are PARALLEL.
      */
     @Transactional(readOnly = true)
-    public List<CandidateDto> candidates(LocalDate date, int period) {
+    public List<CandidateDto> candidates(LocalDate date, int period, Long rowId) {
         int weekday = schoolWeekday(date);
         if (period < FIRST_PERIOD || period > LAST_PERIOD) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tund peab olema vahemikus 1–7");
         }
+        Substitution row = rowId == null ? null : rowOn(rowId, date, period);
         Map<Teacher, List<Lesson>> lessons = timetableService.lessonsOn(weekday);
         Set<String> placeholders = timetableService.placeholderKeys();
         List<Absence> absences = absencesOn(date);
@@ -178,21 +175,57 @@ public class SubstitutionService {
         Map<String, List<Substitution>> substituting = substitutingByKey(rows);
 
         List<CandidateDto> out = new ArrayList<>();
+        Set<String> sameSubject = new HashSet<>();
         lessons.forEach((teacher, dayLessons) -> {
             String key = teacher.getTeacherKey();
-            Availability status = Eligibility.of(periodsOf(dayLessons), period, blocked.contains(key));
-            if (status != Availability.HIDDEN) {
-                List<String> dutyLabels = duties.getOrDefault(key, List.of()).stream()
-                        .filter(d -> d.getPeriod() == period).map(DutyLabels::label).toList();
-                List<DaySlot> day = DayStrip.of(dayLessons, substituting.getOrDefault(key, List.of()),
-                        duties.getOrDefault(key, List.of()));
-                out.add(new CandidateDto(key, TeacherKey.displayName(teacher.getName()), status,
-                        subjects.getOrDefault(key, List.of()), todayCounts.getOrDefault(key, 0), dutyLabels,
-                        day, DayStrip.streak(day, period)));
-            }
+            boolean isBlocked = blocked.contains(key);
+            Availability status = Eligibility.of(periodsOf(dayLessons), period, isBlocked);
+            List<Lesson> parallel = isBlocked ? List.of() : parallelLessons(dayLessons, row, period);
+            if (status == Availability.HIDDEN && !parallel.isEmpty()) status = Availability.PARALLEL;
+            if (status == Availability.HIDDEN) return; // skips this teacher
+
+            // parallel is non-empty only with a row
+            if (parallel.stream().anyMatch(l -> Objects.equals(l.getSubject(), row.getSubject()))) sameSubject.add(key);
+            List<String> dutyLabels = duties.getOrDefault(key, List.of()).stream()
+                    .filter(d -> d.getPeriod() == period).map(DutyLabels::label).toList();
+            List<DaySlot> day = DayStrip.of(dayLessons, substituting.getOrDefault(key, List.of()),
+                    duties.getOrDefault(key, List.of()));
+            String parallelLesson = parallel.isEmpty() ? null : parallel.stream()
+                    .map(l -> DayStrip.label(l.getClasses(), l.getSubject())).collect(Collectors.joining("; "));
+            out.add(new CandidateDto(key, TeacherKey.displayName(teacher.getName()), status,
+                    subjects.getOrDefault(key, List.of()), todayCounts.getOrDefault(key, 0), dutyLabels,
+                    day, DayStrip.streak(day, period), parallelLesson));
         });
-        out.sort(CANDIDATE_ORDER);
+        out.sort(candidateOrder(sameSubject));
         return out;
+    }
+
+    /** FREE, ASK_FIRST, PARALLEL; then the row's subject first; a duty in the period last; fewest today; name. */
+    private static Comparator<CandidateDto> candidateOrder(Set<String> sameSubject) {
+        return Comparator.comparing(CandidateDto::status)
+                .thenComparing(c -> !sameSubject.contains(c.key()))
+                .thenComparing(c -> !c.duties().isEmpty())
+                .thenComparingInt(CandidateDto::todayCount)
+                .thenComparing(CandidateDto::name, TeacherKey.DISPLAY_ORDER);
+    }
+
+    /** The row being filled; it must be on that date and in that period. */
+    private Substitution rowOn(Long rowId, LocalDate date, int period) {
+        Substitution row = substitutionRepository.findById(rowId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Asendust ei leitud"));
+        Absence absence = absenceRepository.findById(row.getAbsenceId()).orElseThrow();
+        if (row.getPeriod() != period || !absence.getAbsenceDate().equals(date)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rida ei ole selle päeva ja tunni oma");
+        }
+        return row;
+    }
+
+    /** Their lessons in the period that share a class with the row; none without a row or for a duty row. */
+    private static List<Lesson> parallelLessons(List<Lesson> dayLessons, Substitution row, int period) {
+        if (row == null || row.getDutyLabel() != null) return List.of();
+        return dayLessons.stream()
+                .filter(l -> l.getPeriod() == period && ClassTokens.overlap(l.getClasses(), row.getClasses()))
+                .toList();
     }
 
     private static Set<Integer> periodsOf(List<Lesson> lessons) {

@@ -49,10 +49,12 @@ public class DayController {
         substitutionService.deleteAbsence(id);
     }
 
+    /** row: the substitution row being filled; adds teachers teaching the same class at the same time. */
     @GetMapping("/days/{date}/candidates")
     public List<CandidateDto> candidates(@PathVariable @DateTimeFormat(iso = ISO.DATE) LocalDate date,
-                                         @RequestParam int period) {
-        return substitutionService.candidates(date, period);
+                                         @RequestParam int period,
+                                         @RequestParam(required = false) Long row) {
+        return substitutionService.candidates(date, period, row);
     }
 
     @PutMapping("/substitutions/{id}")

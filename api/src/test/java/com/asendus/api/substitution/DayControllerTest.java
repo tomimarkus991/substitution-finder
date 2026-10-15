@@ -538,4 +538,76 @@ class DayControllerTest extends IntegrationTest {
         putSubstitution(rowId, "{\"substituteKeys\":[],\"freeText\":\"" + "x".repeat(200) + "\"}")
                 .andExpect(status().isOk());
     }
+
+    // ---------- parallel teachers ----------
+
+    /**
+     * A Friday pair (absent, parallel) whose lessons in the same period share a class, from the fixture PDF.
+     * The absent teacher has exactly one lesson in that period, so their absence gives exactly one row.
+     */
+    record Pair(String absent, String parallel, int period) {}
+
+    Pair parallelPair() {
+        List<Pair> pairs = jdbc.query("""
+                select ta.key a, tb.key b, la.period p from lesson la
+                join teacher ta on ta.id = la.teacher_id join timetable_version v on v.id = ta.version_id and v.active
+                join lesson lb on lb.weekday = la.weekday and lb.period = la.period and lb.teacher_id <> la.teacher_id
+                join teacher tb on tb.id = lb.teacher_id and tb.version_id = v.id
+                where la.weekday = 5
+                  and (select count(*) from lesson x where x.teacher_id = la.teacher_id
+                       and x.weekday = 5 and x.period = la.period) = 1
+                  and array_remove(string_to_array(lower(la.classes), '/'), '') && array_remove(string_to_array(lower(lb.classes), '/'), '')
+                order by ta.key, tb.key, la.period
+                """, (rs, i) -> new Pair(rs.getString("a"), rs.getString("b"), rs.getInt("p")));
+        assertThat(pairs).as("two teachers sharing a class in one Friday period").isNotEmpty();
+        return pairs.getFirst();
+    }
+
+    ResultActions candidatesForRow(String date, int period, long rowId) throws Exception {
+        return mockMvc.perform(get("/days/{d}/candidates", date).param("period", String.valueOf(period))
+                .param("row", String.valueOf(rowId)).header("Authorization", bearer()));
+    }
+
+    @Test
+    void aRowBringsInTeachersOfTheSameClassAtTheSameTime() throws Exception {
+        Pair pair = parallelPair();
+        String absence = absent(pair.absent(), pair.period(), pair.period());
+        long rowId = id(absence, "$.rows[0].id");
+
+        String body = candidatesForRow(FRI, pair.period(), rowId).andExpect(status().isOk())
+                .andExpect(jsonPath(byKey(pair.parallel()) + ".status", contains("PARALLEL")))
+                .andExpect(jsonPath(byKey(pair.parallel()) + ".parallelLesson", contains(not(emptyOrNullString()))))
+                .andExpect(jsonPath(byKey(pair.absent())).isEmpty())
+                .andReturn().getResponse().getContentAsString();
+        List<String> statuses = JsonPath.read(body, "$[*].status");
+        assertThat(statuses).isSortedAccordingTo(Comparator.comparing(Availability::valueOf));
+
+        // Same subject as the row first among PARALLEL (subject compared the way the service does, from the DB)
+        String subject = JsonPath.read(absence, "$.rows[0].subject");
+        List<String> parallelKeys = JsonPath.read(body, "$[?(@.status=='PARALLEL')].key");
+        List<Boolean> same = parallelKeys.stream().map(k -> jdbc.queryForObject("""
+                select exists (select 1 from lesson l join teacher t on t.id = l.teacher_id
+                join timetable_version v on v.id = t.version_id and v.active
+                where t.key = ? and l.weekday = 5 and l.period = ? and l.subject = ?)""",
+                Boolean.class, k, pair.period(), subject)).toList();
+        assertThat(same).isSortedAccordingTo(Comparator.reverseOrder());
+
+        // Without a row nothing changes
+        candidates(pair.period()).andExpect(jsonPath(byKey(pair.parallel())).isEmpty());
+
+        // Once they substitute in that period they drop out
+        putSubstitution(rowId, "{\"substituteKeys\":[\"" + pair.parallel() + "\"],\"freeText\":\"\"}").andExpect(status().isOk());
+        candidatesForRow(FRI, pair.period(), rowId).andExpect(status().isOk())
+                .andExpect(jsonPath(byKey(pair.parallel())).isEmpty());
+    }
+
+    @Test
+    void aRowMustBelongToTheDateAndPeriod() throws Exception {
+        Pair pair = parallelPair();
+        long rowId = id(absent(pair.absent(), pair.period(), pair.period()), "$.rows[0].id");
+        int otherPeriod = pair.period() == 1 ? 2 : 1;
+        candidatesForRow(FRI, otherPeriod, rowId).andExpect(status().isBadRequest());
+        candidatesForRow("2026-09-11", pair.period(), rowId).andExpect(status().isBadRequest());
+        candidatesForRow(FRI, pair.period(), 999_999).andExpect(status().isNotFound());
+    }
 }
