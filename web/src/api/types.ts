@@ -76,12 +76,13 @@ export interface DaySlot {
 export interface Candidate {
   key: string
   name: string
-  status: 'FREE' | 'ASK_FIRST'
+  status: 'FREE' | 'ASK_FIRST' | 'PARALLEL'
   subjects: string[]
   todayCount: number
   duties: string[]
   day: DaySlot[]
   streak: number
+  parallelLesson: string | null
 }
 
 // Break duties

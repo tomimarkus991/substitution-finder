@@ -17,8 +17,8 @@ type Props = { date: string; row: Substitution; onClose: () => void }
 export default function CandidatePicker({ date, row, onClose }: Props) {
   const qc = useQueryClient()
   const candidates = useQuery({
-    queryKey: ['candidates', date, row.period],
-    queryFn: () => api<Candidate[]>(`/days/${date}/candidates?period=${row.period}`),
+    queryKey: ['candidates', date, row.period, row.id],
+    queryFn: () => api<Candidate[]>(`/days/${date}/candidates?period=${row.period}&row=${row.id}`),
   })
 
   // Changes are saved one after another (same scope) and shown at once from `draft`;
@@ -61,6 +61,7 @@ export default function CandidatePicker({ date, row, onClose }: Props) {
   const others = (candidates.data ?? []).filter(c => !selected.has(c.key))
   const free = others.filter(c => c.status === 'FREE')
   const askFirst = others.filter(c => c.status === 'ASK_FIRST')
+  const parallel = others.filter(c => c.status === 'PARALLEL')
 
   return (
     <div className="space-y-5 border-t-2 border-slate-100 bg-surface-bg px-4 py-4">
@@ -93,6 +94,16 @@ export default function CandidatePicker({ date, row, onClose }: Props) {
               tip={<InfoTip label="Küsi enne">See tund on kohe enne tema esimest tundi. Ta peaks tulema tund varem, nii et lepi temaga enne kokku.</InfoTip>}
             >
               {askFirst.map(c => <CandidateButton key={c.key} candidate={c} period={row.period} onClick={() => toggle(c.key)} />)}
+            </Group>
+          )}
+          {parallel.length > 0 && (
+            <Group
+              title="Sama klass samal ajal"
+              hint="grupp pooleks"
+              dot="bg-teal-500"
+              tip={<InfoTip label="Sama klass samal ajal">Neil on samal tunnil tund samale klassile (nt teine keelerühm). Vali üks või mitu, kui jagad puuduja rühma nende vahel.</InfoTip>}
+            >
+              {parallel.map(c => <CandidateButton key={c.key} candidate={c} period={row.period} onClick={() => toggle(c.key)} />)}
             </Group>
           )}
           {others.some(c => c.duties.length > 0) && (
@@ -160,10 +171,11 @@ function Group({ title, hint, dot, tip, empty, children }: GroupProps) {
 }
 
 function CandidateButton({ candidate: c, period, onClick }: { candidate: Candidate; period: number; onClick: () => void }) {
-  const tone =
-    c.status === 'FREE'
-      ? 'border-casual-green-outline border-b-casual-green bg-green-50 hover:bg-green-100'
-      : 'border-casual-orange-outline border-b-casual-orange bg-orange-50 hover:bg-orange-100'
+  const tone = {
+    FREE: 'border-casual-green-outline border-b-casual-green bg-green-50 hover:bg-green-100',
+    ASK_FIRST: 'border-casual-orange-outline border-b-casual-orange bg-orange-50 hover:bg-orange-100',
+    PARALLEL: 'border-teal-300 border-b-teal-500 bg-teal-50 hover:bg-teal-100',
+  }[c.status]
   return (
     <button
       onClick={onClick}
@@ -177,10 +189,10 @@ function CandidateButton({ candidate: c, period, onClick }: { candidate: Candida
       {c.duties.map(d => (
         <span key={d} className="mt-1 mr-1 inline-block rounded-full bg-violet-500 px-2 py-0.5 text-xs font-bold text-white">{d}</span>
       ))}
-      {(c.subjects.length > 0 || c.todayCount > 0) && (
+      {(c.parallelLesson || c.subjects.length > 0 || c.todayCount > 0) && (
         <span className="block text-xs text-text-caption">
-          {c.subjects.map(subjectName).join(', ')}
-          {c.subjects.length > 0 && c.todayCount > 0 && ' · '}
+          {c.parallelLesson ? `annab ${c.parallelLesson}` : c.subjects.map(subjectName).join(', ')}
+          {(c.parallelLesson || c.subjects.length > 0) && c.todayCount > 0 && ' · '}
           {c.todayCount > 0 && <span className="font-bold text-text-primary">täna {c.todayCount} {c.todayCount === 1 ? 'asendus' : 'asendust'}</span>}
         </span>
       )}

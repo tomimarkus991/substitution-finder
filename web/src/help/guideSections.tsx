@@ -56,6 +56,10 @@ export function SubstituteHelp() {
         <Legend dot="bg-casual-orange" title="Küsi enne">
           Tund on kohe enne tema esimest tundi, ehk ta peaks tulema tund varem. Lepi temaga enne kokku.
         </Legend>
+        <Legend dot="bg-teal-500" title="Sama klass samal ajal">
+          Neil on samal tunnil endal tund samale klassile, näiteks teine keelerühm. Vali üks või mitu, kui jagad
+          puuduja rühma nende vahel (grupp pooleks).
+        </Legend>
       </div>
       <p>
         Puudu on need, kes sel päeval tööl pole, annavad ise tundi, juba asendavad samal ajal, ise puuduvad, või kelle
