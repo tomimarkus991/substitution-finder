@@ -20,6 +20,10 @@ export function TimetableHelp() {
         Märgi linnuke <b>Pole päris õpetaja</b> ridadele nagu „Puutöö“ või „Inglise keel“. Neid saab puudujaks
         märkida, aga asendajana neid ei pakuta. Märge jääb alles ka järgmise tunniplaani juures.
       </Tip>
+      <Tip>
+        Vali nimekirjast õpetaja ja vajuta tema nime kõrval <b>✎</b>, kui nimi on PDF-is vale või kohatäitja asemel on
+        nüüd päris õpetaja. Uus nimi jääb alles ka järgmise tunniplaani juures. <b>Taasta</b> paneb PDF-i nime tagasi.
+      </Tip>
     </Step>
   )
 }

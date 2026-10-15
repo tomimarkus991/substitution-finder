@@ -39,6 +39,7 @@ export interface TeacherGrid {
   key: string
   name: string
   displayName: string
+  renamed: boolean
   placeholder: boolean
   lessons: Lesson[]
 }
