@@ -1,1 +1,5 @@
 # v1.0.0
+
+- Candidates carry the teacher's day slots and streak
+- Candidates for a row include parallel teachers of the same class
+- PUT /teachers/{key}/name renames a teacher across timetable versions and rematches break duties

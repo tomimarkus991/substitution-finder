@@ -1,1 +1,5 @@
 # v1.0.0
+
+- Candidate buttons show the teacher's day and how many lessons in a row they have
+- A row offers parallel teachers of the same class to split the group
+- Teacher names can be edited on the timetable page and restored to the PDF name
