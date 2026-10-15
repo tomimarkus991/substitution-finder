@@ -62,7 +62,8 @@ export function SubstituteHelp() {
         </Legend>
       </div>
       <p>
-        Puudu on need, kes sel päeval tööl pole, annavad ise tundi, juba asendavad samal ajal, ise puuduvad, või kelle
+        Puudu on need, kes sel päeval tööl pole, annavad ise tundi (v.a sama klassi õpetajad, kui jagad rühma
+        pooleks), juba asendavad samal ajal, ise puuduvad, või kelle
         tööpäev on liiga kaugel (näiteks 4 tundi õpetanud õpetaja ei saa enam 6. tundi anda).
       </p>
       <p>

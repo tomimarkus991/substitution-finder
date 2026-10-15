@@ -554,6 +554,8 @@ class DayControllerTest extends IntegrationTest {
                 join lesson lb on lb.weekday = la.weekday and lb.period = la.period and lb.teacher_id <> la.teacher_id
                 join teacher tb on tb.id = lb.teacher_id and tb.version_id = v.id
                 where la.weekday = 5
+                  and ta.key not in (select teacher_key from placeholder_flag)
+                  and tb.key not in (select teacher_key from placeholder_flag)
                   and (select count(*) from lesson x where x.teacher_id = la.teacher_id
                        and x.weekday = 5 and x.period = la.period) = 1
                   and array_remove(string_to_array(lower(la.classes), '/'), '') && array_remove(string_to_array(lower(lb.classes), '/'), '')
