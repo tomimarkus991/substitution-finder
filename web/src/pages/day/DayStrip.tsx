@@ -8,7 +8,8 @@ type Props = { day: DaySlot[]; period: number; streak: number }
 export default function DayStrip({ day, period, streak }: Props) {
   return (
     <span className="mt-1.5 flex items-end gap-2">
-      <span className="flex gap-0.5">
+      <span className="sr-only">{streak} tundi järjest</span>
+      <span aria-hidden="true" className="flex gap-0.5">
         {day.map(s => (
           <span key={s.period} className="flex flex-col items-center">
             <span
@@ -25,7 +26,7 @@ export default function DayStrip({ day, period, streak }: Props) {
           </span>
         ))}
       </span>
-      <span className={cn('pb-3 text-xs', streak >= LONG_STREAK ? 'font-bold text-casual-orange-darker' : 'text-text-caption')}>
+      <span aria-hidden="true" className={cn('pb-3 text-xs', streak >= LONG_STREAK ? 'font-bold text-casual-orange-darker' : 'text-text-caption')}>
         → {streak} järjest
       </span>
     </span>
