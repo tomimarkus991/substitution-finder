@@ -67,6 +67,12 @@ export interface Day {
   weekday: number
   absences: Absence[]
 }
+export type SlotKind = 'LESSON' | 'SUBSTITUTING' | 'DUTY' | 'EMPTY'
+export interface DaySlot {
+  period: number
+  kind: SlotKind
+  label: string
+}
 export interface Candidate {
   key: string
   name: string
@@ -74,6 +80,8 @@ export interface Candidate {
   subjects: string[]
   todayCount: number
   duties: string[]
+  day: DaySlot[]
+  streak: number
 }
 
 // Break duties

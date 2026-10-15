@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
-import type { Candidate, Day, Substitution } from '../../api/types'
+import type { Candidate, Day, SlotKind, Substitution } from '../../api/types'
 import { RealButton } from '../../components/ui/RealButton'
 import { cn } from '../../lib/cn'
 import { subjectName } from '../../lib/subjects'
 import InfoTip from '../../help/InfoTip'
+import DayStrip from './DayStrip'
+import { LONG_STREAK, SLOT_STYLE } from './daySlotStyle'
 
 const QUICK_TEXTS = ['Koju', 'Tulevad hiljem', 'Klass kokku', 'Iseseisev töö']
 
@@ -81,7 +83,7 @@ export default function CandidatePicker({ date, row, onClose }: Props) {
             tip={<InfoTip label="Vaba">On sel päeval koolis ja tal on just siis auk, või on see tund kohe pärast tema viimast tundi.</InfoTip>}
             empty={free.length === 0 ? 'Vabu õpetajaid pole' : undefined}
           >
-            {free.map(c => <CandidateButton key={c.key} candidate={c} onClick={() => toggle(c.key)} />)}
+            {free.map(c => <CandidateButton key={c.key} candidate={c} period={row.period} onClick={() => toggle(c.key)} />)}
           </Group>
           {askFirst.length > 0 && (
             <Group
@@ -90,13 +92,26 @@ export default function CandidatePicker({ date, row, onClose }: Props) {
               dot="bg-casual-orange"
               tip={<InfoTip label="Küsi enne">See tund on kohe enne tema esimest tundi. Ta peaks tulema tund varem, nii et lepi temaga enne kokku.</InfoTip>}
             >
-              {askFirst.map(c => <CandidateButton key={c.key} candidate={c} onClick={() => toggle(c.key)} />)}
+              {askFirst.map(c => <CandidateButton key={c.key} candidate={c} period={row.period} onClick={() => toggle(c.key)} />)}
             </Group>
           )}
           {others.some(c => c.duties.length > 0) && (
             <p className="flex items-center gap-2 text-sm text-text-caption">
               <span className="h-3 w-3 rounded-full bg-violet-500" /> on sel ajal vahetunni valves
               <InfoTip label="Vahetunni valve">Õpetajal on selle tunni ajal õue- või söögivahetunni valve. Kui ta asendab, peab valve jaoks kellegi teise leidma.</InfoTip>
+            </p>
+          )}
+          {others.length > 0 && (
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-caption">
+              <Swatch kind="LESSON" /> tund
+              <Swatch kind="SUBSTITUTING" /> asendab
+              <Swatch kind="DUTY" /> valve
+              <Swatch kind="EMPTY" /> vaba
+              <span>★ see tund</span>
+              <InfoTip label="Päeva riba">
+                Ruudud on õpetaja selle päeva 1.–7. tund. „→ N järjest“ näitab, mitu tundi järjest tal tuleks, kui ta selle
+                tunni võtab. Alates {LONG_STREAK}-st on see oranž.
+              </InfoTip>
             </p>
           )}
         </>
@@ -144,7 +159,7 @@ function Group({ title, hint, dot, tip, empty, children }: GroupProps) {
   )
 }
 
-function CandidateButton({ candidate: c, onClick }: { candidate: Candidate; onClick: () => void }) {
+function CandidateButton({ candidate: c, period, onClick }: { candidate: Candidate; period: number; onClick: () => void }) {
   const tone =
     c.status === 'FREE'
       ? 'border-casual-green-outline border-b-casual-green bg-green-50 hover:bg-green-100'
@@ -158,6 +173,7 @@ function CandidateButton({ candidate: c, onClick }: { candidate: Candidate; onCl
       )}
     >
       <span className="block font-bold">{c.name}</span>
+      <DayStrip day={c.day} period={period} streak={c.streak} />
       {c.duties.map(d => (
         <span key={d} className="mt-1 mr-1 inline-block rounded-full bg-violet-500 px-2 py-0.5 text-xs font-bold text-white">{d}</span>
       ))}
@@ -187,4 +203,8 @@ function ToggleButton({ selected, onClick, children }: { selected: boolean; onCl
       {children}
     </button>
   )
+}
+
+function Swatch({ kind }: { kind: SlotKind }) {
+  return <span className={cn('inline-block h-3 w-3 rounded border-2', SLOT_STYLE[kind])} />
 }

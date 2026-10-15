@@ -66,6 +66,11 @@ export function SubstituteHelp() {
         asendajat pole, vali märkus: <b>Koju</b>, <b>Tulevad hiljem</b>, <b>Klass kokku</b>, <b>Iseseisev töö</b> või kirjuta
         oma tekst.
       </p>
+      <p>
+        Iga nime all on tema päev: hallid ruudud on tunnid, sinised juba võetud asendused, lillad valved ja ★ on see
+        tund. <b>→ N järjest</b> näitab, mitu tundi järjest tal tuleks. Alates viiest on see oranž. Hiirega ruudu peal
+        näed klassi ja ainet.
+      </p>
       <Tip>Kõik salvestub kohe, eraldi salvestamise nuppu pole. Rida läheb roheliseks, kui tund on kaetud.</Tip>
     </Step>
   )
