@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.web.servlet.ResultActions;
 import com.jayway.jsonpath.JsonPath;
 
 import java.text.Collator;
@@ -213,5 +214,33 @@ class TimetableControllerTest extends IntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON).content("{\"teacherKey\":\"pärnpuu taimi\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.teacherName").value("Taimi Testnimi"));
+    }
+
+    ResultActions rename(String key, String name) throws Exception {
+        return mockMvc.perform(put("/teachers/{key}/name", key).header("Authorization", bearer())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"displayName\":\"" + name + "\"}"));
+    }
+
+    @Test
+    void renameTrimsRestoresAndSurvivesANewVersion() throws Exception {
+        activate(upload("opetajad-b.pdf"));
+        rename("pärnpuu taimi", "  Taimi   Testnimi ").andExpect(status().isOk())
+                .andExpect(jsonPath("$.displayName").value("Taimi Testnimi"))
+                .andExpect(jsonPath("$.renamed").value(true));
+
+        activate(upload("opetajad-a.pdf"));
+        mockMvc.perform(get("/timetables/active/teachers/{k}", "pärnpuu taimi").header("Authorization", bearer()))
+                .andExpect(jsonPath("$.displayName").value("Taimi Testnimi"));
+
+        rename("pärnpuu taimi", "  ").andExpect(status().isOk())
+                .andExpect(jsonPath("$.displayName").value("Taimi Pärnpuu"))
+                .andExpect(jsonPath("$.renamed").value(false));
+    }
+
+    @Test
+    void renameRejectsUnknownTeachersAndLongNames() throws Exception {
+        activate(upload("opetajad-b.pdf"));
+        rename("pole olemas", "X").andExpect(status().isNotFound());
+        rename("pärnpuu taimi", "x".repeat(101)).andExpect(status().isBadRequest());
     }
 }

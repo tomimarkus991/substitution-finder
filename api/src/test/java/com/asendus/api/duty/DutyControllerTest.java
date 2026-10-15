@@ -123,4 +123,35 @@ class DutyControllerTest extends IntegrationTest {
         upload(sheet()).andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("Lae esmalt tunniplaan üles"));
     }
+
+    ResultActions rename(String key, String name) throws Exception {
+        return mockMvc.perform(put("/teachers/{key}/name", key).header("Authorization", bearer())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"displayName\":\"" + name + "\"}"));
+    }
+
+    String keyWithSurname(String surname) {
+        return jdbc.queryForObject("""
+                select t.key from teacher t join timetable_version v on v.id = t.version_id and v.active
+                where split_part(t.name, ' ', 1) = ?""", String.class, surname);
+    }
+
+    @Test void renamingMatchesALeftOverDutyWithoutReupload() throws Exception {
+        assertThat(JsonPath.<List<String>>read(uploadJson(), "$.unresolved[*].rawName")).contains(NOBODY);
+        String other = jdbc.queryForList("""
+                select split_part(t.name, ' ', 1) s from teacher t
+                join timetable_version v on v.id = t.version_id and v.active
+                group by s having count(*) = 1 order by s""", String.class).get(2);
+        rename(keyWithSurname(other), "Mari " + NOBODY).andExpect(status().isOk());
+
+        String json = mockMvc.perform(get("/duties").header("Authorization", bearer()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(JsonPath.<List<String>>read(json, "$.unresolved[*].rawName")).doesNotContain(NOBODY);
+        assertThat((Integer) JsonPath.read(json, "$.dutyCount")).isEqualTo(2);
+    }
+
+    @Test void aRenameKeepingTheSurnameIsNotAmbiguous() throws Exception {
+        rename(keyWithSurname(unique), "Uus " + unique).andExpect(status().isOk());
+        String json = uploadJson();
+        assertThat(JsonPath.<List<String>>read(json, "$.unresolved[*].rawName")).doesNotContain(unique);
+    }
 }

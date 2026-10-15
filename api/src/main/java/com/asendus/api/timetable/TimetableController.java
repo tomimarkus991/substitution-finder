@@ -1,10 +1,12 @@
 package com.asendus.api.timetable;
 
 import com.asendus.api.timetable.TimetableDtos.PlaceholderRequest;
+import com.asendus.api.timetable.TimetableDtos.RenameRequest;
 import com.asendus.api.timetable.TimetableDtos.TeacherGridDto;
 import com.asendus.api.timetable.TimetableDtos.TimetablePreviewDto;
 import com.asendus.api.timetable.TimetableDtos.TimetableSummaryDto;
 import com.asendus.api.util.JwtUtils;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,6 +21,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class TimetableController {
     private final TimetableService timetableService;
+    private final TeacherRenameService teacherRenameService;
 
     @PostMapping("/timetables")
     @ResponseStatus(HttpStatus.CREATED)
@@ -50,5 +53,11 @@ public class TimetableController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void setPlaceholder(@PathVariable String key, @RequestBody PlaceholderRequest request) {
         timetableService.setPlaceholder(key, request.placeholder());
+    }
+
+    /** A blank name goes back to the PDF's. */
+    @PutMapping("/teachers/{key}/name")
+    public TeacherGridDto rename(@PathVariable String key, @Valid @RequestBody RenameRequest request) {
+        return teacherRenameService.rename(key, request.displayName());
     }
 }

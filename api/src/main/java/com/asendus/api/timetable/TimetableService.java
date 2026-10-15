@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.text.Normalizer;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -102,6 +103,21 @@ public class TimetableService {
         } else {
             placeholderFlagRepository.deleteById(k);
         }
+    }
+
+    /** Sets the teacher's display name; blank goes back to the PDF name. Stored by key like placeholder flags. */
+    @Transactional
+    public TeacherGridDto rename(String key, String displayName) {
+        Teacher t = activeTeacher(key)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Õpetajat ei leitud"));
+        String name = Normalizer.normalize(displayName, Normalizer.Form.NFC).trim().replaceAll("\\s+", " ");
+        if (name.isEmpty()) {
+            nameOverrideRepository.deleteById(t.getTeacherKey());
+        } else {
+            nameOverrideRepository.save(new TeacherNameOverride(t.getTeacherKey(), name));
+        }
+        nameOverrideRepository.flush();
+        return grid(t.getTeacherKey());
     }
 
     /**

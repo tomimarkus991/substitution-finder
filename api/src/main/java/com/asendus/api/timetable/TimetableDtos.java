@@ -1,5 +1,8 @@
 package com.asendus.api.timetable;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -21,4 +24,6 @@ public final class TimetableDtos {
                                  List<LessonDto> lessons) {}
 
     public record PlaceholderRequest(boolean placeholder) {}
+
+    public record RenameRequest(@NotNull @Size(max = 100) String displayName) {}
 }
