@@ -30,7 +30,7 @@ class AbsenceRaceTest extends IntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        jdbc.execute("TRUNCATE timetable_version, placeholder_flag, absence, duty_version CASCADE");
+        jdbc.execute("TRUNCATE timetable_version, placeholder_flag, teacher_name_override, absence, duty_version CASCADE");
         String body = mockMvc.perform(multipart("/timetables")
                         .file(new MockMultipartFile("file", "b.pdf", "application/pdf", TestPdfs.load("opetajad-b.pdf")))
                         .header("Authorization", bearer()))

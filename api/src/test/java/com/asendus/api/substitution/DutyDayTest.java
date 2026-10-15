@@ -43,7 +43,7 @@ class DutyDayTest extends IntegrationTest {
     }
 
     @BeforeEach void setUp() throws Exception {
-        jdbc.execute("TRUNCATE timetable_version, placeholder_flag, absence, duty_version CASCADE");
+        jdbc.execute("TRUNCATE timetable_version, placeholder_flag, teacher_name_override, absence, duty_version CASCADE");
         uploadTimetable();
         List<String> keys = JsonPath.<List<String>>read(candidatesJson(3), "$[*].key").stream()
                 .filter(k -> uniqueSurname(surnameOf(k))).toList();

@@ -23,6 +23,7 @@ public class TimetableService {
     private final TeacherRepository teacherRepository;
     private final LessonRepository lessonRepository;
     private final PlaceholderFlagRepository placeholderFlagRepository;
+    private final TeacherNameOverrideRepository nameOverrideRepository;
 
     /** Parses the PDF into a new inactive version, dropping any earlier version that isn't active. */
     @Transactional
@@ -69,8 +70,9 @@ public class TimetableService {
         Map<Long, Long> lessonCounts = lessonRepository.findByTeacherIdIn(ids(teachers)).stream()
                 .collect(Collectors.groupingBy(Lesson::getTeacherId, Collectors.counting()));
         Set<String> placeholders = placeholderKeys();
+        Map<String, String> names = nameOverrides();
         List<TeacherSummaryDto> dtos = teachers.stream().map(t -> new TeacherSummaryDto(
-                        t.getTeacherKey(), t.getName(), TeacherKey.displayName(t.getName()),
+                        t.getTeacherKey(), t.getName(), displayName(t, names),
                         placeholders.contains(t.getTeacherKey()),
                         lessonCounts.getOrDefault(t.getId(), 0L).intValue()))
                 .sorted(Comparator.comparing(TeacherSummaryDto::displayName, TeacherKey.DISPLAY_ORDER))
@@ -85,8 +87,10 @@ public class TimetableService {
         List<LessonDto> lessons = lessonRepository.findByTeacherIdOrderByWeekdayAscPeriodAsc(t.getId()).stream()
                 .map(l -> new LessonDto(l.getWeekday(), l.getPeriod(), l.getClasses(), l.getSubject(), l.getRoom(), l.getNote()))
                 .toList();
-        return new TeacherGridDto(t.getTeacherKey(), t.getName(), TeacherKey.displayName(t.getName()),
-                placeholderFlagRepository.existsById(t.getTeacherKey()), lessons);
+        Optional<TeacherNameOverride> set = nameOverrideRepository.findById(t.getTeacherKey());
+        return new TeacherGridDto(t.getTeacherKey(), t.getName(),
+                set.map(TeacherNameOverride::getDisplayName).orElseGet(() -> TeacherKey.displayName(t.getName())),
+                set.isPresent(), placeholderFlagRepository.existsById(t.getTeacherKey()), lessons);
     }
 
     /** Stored by key, so the flag carries over to later versions. */
@@ -173,6 +177,25 @@ public class TimetableService {
     public Set<String> placeholderKeys() {
         return placeholderFlagRepository.findAll().stream().map(PlaceholderFlag::getTeacherKey)
                 .collect(Collectors.toSet());
+    }
+
+    /** key → display name set by hand (across versions). */
+    @Transactional(readOnly = true)
+    public Map<String, String> nameOverrides() {
+        return nameOverrideRepository.findAll().stream()
+                .collect(Collectors.toMap(TeacherNameOverride::getTeacherKey, TeacherNameOverride::getDisplayName));
+    }
+
+    /** The name shown everywhere: set by hand, else the PDF's "Firstname Surname". */
+    public static String displayName(Teacher t, Map<String, String> overrides) {
+        String set = overrides.get(t.getTeacherKey());
+        return set != null ? set : TeacherKey.displayName(t.getName());
+    }
+
+    @Transactional(readOnly = true)
+    public String displayName(Teacher t) {
+        return nameOverrideRepository.findById(t.getTeacherKey()).map(TeacherNameOverride::getDisplayName)
+                .orElseGet(() -> TeacherKey.displayName(t.getName()));
     }
 
     private Optional<TimetableVersion> activeVersion() {

@@ -27,10 +27,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class TimetableControllerTest extends IntegrationTest {
 
     @Autowired JdbcTemplate jdbc;
+    @Autowired TeacherNameOverrideRepository nameOverrides;
 
     @BeforeEach
     void clean() {
-        jdbc.execute("TRUNCATE timetable_version, placeholder_flag, absence, duty_version CASCADE");
+        jdbc.execute("TRUNCATE timetable_version, placeholder_flag, teacher_name_override, absence, duty_version CASCADE");
     }
 
     private long upload(String file) throws Exception {
@@ -192,5 +193,25 @@ class TimetableControllerTest extends IntegrationTest {
                 .andReturn().getResponse().getContentAsString();
         List<String> names = JsonPath.read(body, "$.teachers[*].displayName");
         assertThat(names).hasSize(46).isSortedAccordingTo(Collator.getInstance(Locale.of("et"))::compare);
+    }
+
+    @Test
+    void anOverriddenNameIsShownEverywhere() throws Exception {
+        activate(upload("opetajad-b.pdf"));
+        nameOverrides.save(new TeacherNameOverride("pärnpuu taimi", "Taimi Testnimi"));
+
+        mockMvc.perform(get("/timetables/active").header("Authorization", bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.teachers[?(@.key=='pärnpuu taimi')].displayName").value("Taimi Testnimi"));
+        mockMvc.perform(get("/timetables/active/teachers/{k}", "pärnpuu taimi").header("Authorization", bearer()))
+                .andExpect(jsonPath("$.displayName").value("Taimi Testnimi"))
+                .andExpect(jsonPath("$.name").value("Pärnpuu Taimi"))
+                .andExpect(jsonPath("$.renamed").value(true));
+        mockMvc.perform(get("/days/{d}/candidates", "2026-09-04").param("period", "5").header("Authorization", bearer()))
+                .andExpect(jsonPath("$[?(@.key=='pärnpuu taimi')].name").value("Taimi Testnimi"));
+        mockMvc.perform(post("/days/{d}/absences", "2026-09-04").header("Authorization", bearer())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"teacherKey\":\"pärnpuu taimi\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.teacherName").value("Taimi Testnimi"));
     }
 }

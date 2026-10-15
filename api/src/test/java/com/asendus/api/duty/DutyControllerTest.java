@@ -28,7 +28,7 @@ class DutyControllerTest extends IntegrationTest {
     String shared; // surname we give to a second, made-up teacher
 
     @BeforeEach void setUp() throws Exception {
-        jdbc.execute("TRUNCATE timetable_version, placeholder_flag, absence, duty_version CASCADE");
+        jdbc.execute("TRUNCATE timetable_version, placeholder_flag, teacher_name_override, absence, duty_version CASCADE");
         uploadTimetable();
         List<String> surnames = jdbc.queryForList("""
                 select split_part(t.name, ' ', 1) s from teacher t

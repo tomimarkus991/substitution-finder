@@ -80,7 +80,7 @@ public class SubstitutionService {
         // Flush now so a double-tap that got past the check above fails on the unique constraint here (→ 409)
         Absence absence = absenceRepository.saveAndFlush(Absence.builder()
                 .absenceDate(date).teacherKey(teacher.getTeacherKey())
-                .teacherName(TeacherKey.displayName(teacher.getName()))
+                .teacherName(timetableService.displayName(teacher))
                 .fromPeriod((short) from).toPeriod((short) to).createdBy(userId).build());
 
         List<Lesson> lessons = timetableService.lessonsOf(teacher, weekday);
@@ -133,7 +133,7 @@ public class SubstitutionService {
     private String nameFor(String key, Map<String, String> stored) {
         if (stored.containsKey(key)) return stored.get(key);
         return timetableService.activeTeacher(key)
-                .map(t -> TeacherKey.displayName(t.getName()))
+                .map(timetableService::displayName)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tundmatu õpetaja"));
     }
 
@@ -173,6 +173,7 @@ public class SubstitutionService {
         Map<String, List<String>> subjects = timetableService.subjectsByTeacherKey();
         Map<String, List<Duty>> duties = dutyService.dutiesOn(weekday);
         Map<String, List<Substitution>> substituting = substitutingByKey(rows);
+        Map<String, String> names = timetableService.nameOverrides();
 
         List<CandidateDto> out = new ArrayList<>();
         Set<String> sameSubject = new HashSet<>();
@@ -192,7 +193,7 @@ public class SubstitutionService {
                     duties.getOrDefault(key, List.of()));
             String parallelLesson = parallel.isEmpty() ? null : parallel.stream()
                     .map(l -> DayStrip.label(l.getClasses(), l.getSubject())).collect(Collectors.joining("; "));
-            out.add(new CandidateDto(key, TeacherKey.displayName(teacher.getName()), status,
+            out.add(new CandidateDto(key, TimetableService.displayName(teacher, names), status,
                     subjects.getOrDefault(key, List.of()), todayCounts.getOrDefault(key, 0), dutyLabels,
                     day, DayStrip.streak(day, period), parallelLesson));
         });
