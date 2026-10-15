@@ -127,7 +127,8 @@ so the key stays the same).
   (`createAbsence`, `nameFor`, `candidates`) and `DutyService` (`toDuty`, `resolve`, `summary`) uses it, so new
   snapshots take the overridden name. Sorting by display name uses the overridden name. Exception: the static
   `difference()` in the upload preview (`TimetableService`) keeps PDF names — it compares two PDFs.
-- `TeacherGridDto` keeps `name` (PDF name) and `displayName` (effective) and adds `renamed: boolean`.
+- `TeacherGridDto` keeps `name` (PDF name) and `displayName` (effective) and adds `renamed: boolean` and
+  `pdfDisplayName` (the PDF name as "Firstname Surname", for the "PDF-is: …" line).
   `TeacherSummaryDto` gets the effective `displayName` only (no new field).
 - Duty matching (`DutyService`, surname → teacher): a teacher is reachable by their PDF surname and, when
   renamed, also by the override's surname (last word). Each surname group is deduplicated by teacher key, so
