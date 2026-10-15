@@ -31,6 +31,9 @@ public final class DayDtos {
     public record CandidateDto(String key, String name, Availability status, List<String> subjects, int todayCount,
                            List<String> duties) {}
 
+    /** One period of a candidate's day. label: "4R · Ek" (several joined with "; "), a duty label, or "". */
+    public record DaySlot(int period, SlotKind kind, String label) {}
+
     public record UpdateSubstitutionRequest(@NotNull @Size(max = 10) List<String> substituteKeys,
                                             @NotNull @Size(max = 200) String freeText) {}
 }
