@@ -88,9 +88,9 @@ public class TimetableService {
         List<LessonDto> lessons = lessonRepository.findByTeacherIdOrderByWeekdayAscPeriodAsc(t.getId()).stream()
                 .map(l -> new LessonDto(l.getWeekday(), l.getPeriod(), l.getClasses(), l.getSubject(), l.getRoom(), l.getNote()))
                 .toList();
-        Optional<TeacherNameOverride> set = nameOverrideRepository.findById(t.getTeacherKey());
-        return new TeacherGridDto(t.getTeacherKey(), t.getName(),
-                set.map(TeacherNameOverride::getDisplayName).orElseGet(() -> TeacherKey.displayName(t.getName())),
+        String pdfName = TeacherKey.displayName(t.getName());
+        Optional<String> set = nameOverride(t);
+        return new TeacherGridDto(t.getTeacherKey(), t.getName(), set.orElse(pdfName), pdfName,
                 set.isPresent(), placeholderFlagRepository.existsById(t.getTeacherKey()), lessons);
     }
 
@@ -210,8 +210,11 @@ public class TimetableService {
 
     @Transactional(readOnly = true)
     public String displayName(Teacher t) {
-        return nameOverrideRepository.findById(t.getTeacherKey()).map(TeacherNameOverride::getDisplayName)
-                .orElseGet(() -> TeacherKey.displayName(t.getName()));
+        return nameOverride(t).orElseGet(() -> TeacherKey.displayName(t.getName()));
+    }
+
+    private Optional<String> nameOverride(Teacher t) {
+        return nameOverrideRepository.findById(t.getTeacherKey()).map(TeacherNameOverride::getDisplayName);
     }
 
     private Optional<TimetableVersion> activeVersion() {

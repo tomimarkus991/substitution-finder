@@ -41,7 +41,7 @@ export default function TimetablePage() {
           <p>Tunniplaani pole veel üles laetud</p>
         </Card>
       )}
-      {selected && <div ref={gridRef} className="scroll-mt-20"><TeacherGrid teacherKey={selected} /></div>}
+      {selected && <div ref={gridRef} className="scroll-mt-20"><TeacherGrid key={selected} teacherKey={selected} /></div>}
 
       {active && (
         <Card>

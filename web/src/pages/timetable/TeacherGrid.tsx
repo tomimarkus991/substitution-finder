@@ -65,14 +65,13 @@ function TeacherName({ grid }: { grid: Grid }) {
     mutationFn: (displayName: string) =>
       api<Grid>(`/teachers/${encodeURIComponent(grid.key)}/name`, { method: 'PUT', body: JSON.stringify({ displayName }) }),
     onSuccess: saved => {
-      qc.setQueryData(['timetable', 'teacher', grid.key], saved)
+      qc.setQueryData(['timetable', 'teacher', saved.key], saved)
       setEditing(false)
     },
     onSettled: () => {
       for (const key of ['timetable', 'candidates', 'day', 'duties']) qc.invalidateQueries({ queryKey: [key] })
     },
   })
-  const pdfName = grid.name.includes(' ') ? `${grid.name.slice(grid.name.indexOf(' ') + 1)} ${grid.name.split(' ')[0]}` : grid.name
   const save = (value: string) => { if (value.trim() !== grid.displayName) rename.mutate(value); else setEditing(false) }
 
   return (
@@ -100,9 +99,9 @@ function TeacherName({ grid }: { grid: Grid }) {
             className="min-h-11 min-w-11 rounded-xl text-text-caption hover:bg-slate-100">✎</button>
         </h2>
       )}
-      {grid.renamed && (
+      {grid.renamed && !editing && (
         <p className="text-sm text-text-caption">
-          PDF-is: {pdfName} ·{' '}
+          PDF-is: {grid.pdfDisplayName} ·{' '}
           <button onClick={() => rename.mutate('')} className="font-semibold text-casual-sky-blue-darker hover:underline">Taasta</button>
         </p>
       )}

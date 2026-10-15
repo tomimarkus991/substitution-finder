@@ -207,6 +207,7 @@ class TimetableControllerTest extends IntegrationTest {
         mockMvc.perform(get("/timetables/active/teachers/{k}", "pärnpuu taimi").header("Authorization", bearer()))
                 .andExpect(jsonPath("$.displayName").value("Taimi Testnimi"))
                 .andExpect(jsonPath("$.name").value("Pärnpuu Taimi"))
+                .andExpect(jsonPath("$.pdfDisplayName").value("Taimi Pärnpuu"))
                 .andExpect(jsonPath("$.renamed").value(true));
         mockMvc.perform(get("/days/{d}/candidates", "2026-09-04").param("period", "5").header("Authorization", bearer()))
                 .andExpect(jsonPath("$[?(@.key=='pärnpuu taimi')].name").value("Taimi Testnimi"));

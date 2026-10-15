@@ -39,6 +39,8 @@ export interface TeacherGrid {
   key: string
   name: string
   displayName: string
+  /** The PDF's name as "Firstname Surname". */
+  pdfDisplayName: string
   renamed: boolean
   placeholder: boolean
   lessons: Lesson[]

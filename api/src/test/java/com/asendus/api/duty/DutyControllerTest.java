@@ -149,6 +149,18 @@ class DutyControllerTest extends IntegrationTest {
         assertThat((Integer) JsonPath.read(json, "$.dutyCount")).isEqualTo(2);
     }
 
+    @Test void renamingATeacherWithAMatchedDutyRenamesTheDuty() throws Exception {
+        uploadJson();
+        String key = keyWithSurname(unique);
+        rename(key, "Uus " + unique).andExpect(status().isOk());
+        assertThat(jdbc.queryForList("select teacher_name from duty where teacher_key = ?", String.class, key))
+                .isNotEmpty().containsOnly("Uus " + unique);
+
+        rename(key, "").andExpect(status().isOk());
+        assertThat(jdbc.queryForList("select teacher_name from duty where teacher_key = ?", String.class, key))
+                .doesNotContain("Uus " + unique);
+    }
+
     @Test void aRenameKeepingTheSurnameIsNotAmbiguous() throws Exception {
         rename(keyWithSurname(unique), "Uus " + unique).andExpect(status().isOk());
         String json = uploadJson();

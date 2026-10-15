@@ -19,9 +19,12 @@ public final class TimetableDtos {
 
     public record LessonDto(int weekday, int period, String classes, String subject, String room, String note) {}
 
-    /** name: as printed in the PDF; displayName: set by hand or from the PDF; renamed: set by hand. */
-    public record TeacherGridDto(String key, String name, String displayName, boolean renamed, boolean placeholder,
-                                 List<LessonDto> lessons) {}
+    /**
+     * name: as printed in the PDF; displayName: set by hand or from the PDF; pdfDisplayName: the PDF's name as
+     * "Firstname Surname"; renamed: set by hand.
+     */
+    public record TeacherGridDto(String key, String name, String displayName, String pdfDisplayName, boolean renamed,
+                                 boolean placeholder, List<LessonDto> lessons) {}
 
     public record PlaceholderRequest(boolean placeholder) {}
 
