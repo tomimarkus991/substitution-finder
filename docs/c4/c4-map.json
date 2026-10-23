@@ -1,0 +1,143 @@
+{
+  "output": "docs/c4",
+  "sources": [
+    {
+      "name": "api",
+      "title": "API (Spring Boot)",
+      "lang": "java",
+      "root": "api/src/main/java",
+      "depth": 1
+    },
+    {
+      "name": "web",
+      "title": "Web app (React)",
+      "lang": "ts",
+      "root": "web/src",
+      "depth": 1,
+      "tsconfig": "web/tsconfig.app.json",
+      "exclude": [
+        "*.test.ts",
+        "*.test.tsx"
+      ]
+    }
+  ],
+  "migrations": "api/src/main/resources/db/migration",
+  "levels": {
+    "level-1": [
+      "README.md",
+      "api/pom.xml",
+      "web/package.json",
+      "api/src/main/resources",
+      ".env.example"
+    ],
+    "level-2": [
+      "docker-compose.prod.yml",
+      "api/compose.yaml",
+      "api/Dockerfile",
+      ".github/workflows",
+      "api/pom.xml",
+      "web/package.json",
+      "web/vite.config.ts",
+      "api/src/main/resources/application.yaml"
+    ],
+    "level-3": [
+      "api/src/main/java",
+      "web/src"
+    ],
+    "database": [
+      "api/src/main/resources/db/migration"
+    ]
+  },
+  "components": {
+    "api/(root)": {
+      "label": "Application",
+      "tech": "Spring Boot",
+      "desc": "Entry point and dev data seeder"
+    },
+    "api/config": {
+      "label": "Config",
+      "tech": "Spring Security, springdoc",
+      "desc": "Security chain, JWT, CORS, email allowlist"
+    },
+    "api/controller": {
+      "label": "Auth and user API",
+      "tech": "Spring Web",
+      "desc": "Google sign-in and current user endpoints"
+    },
+    "api/dto": {
+      "label": "Auth DTOs",
+      "tech": "Jakarta Validation",
+      "desc": "Sign-in request and response shapes"
+    },
+    "api/duty": {
+      "label": "Duties",
+      "tech": "Spring, Apache POI",
+      "desc": "Imports and stores break-duty schedules"
+    },
+    "api/model": {
+      "label": "User model",
+      "tech": "JPA",
+      "desc": "App user entity"
+    },
+    "api/repository": {
+      "label": "User repository",
+      "tech": "Spring Data JPA",
+      "desc": "App user persistence"
+    },
+    "api/service": {
+      "label": "Auth services",
+      "tech": "Spring Security",
+      "desc": "Verifies Google tokens, issues app JWTs"
+    },
+    "api/substitution": {
+      "label": "Substitutions",
+      "tech": "Spring, JPA",
+      "desc": "Absences, substitution rows, substitute candidates"
+    },
+    "api/timetable": {
+      "label": "Timetables",
+      "tech": "Spring, JPA, PDFBox",
+      "desc": "Parses aSc PDFs, versions teachers and lessons"
+    },
+    "api/util": {
+      "label": "JWT utils",
+      "tech": "Spring Security",
+      "desc": "Reads the current user from the JWT"
+    },
+    "web/(root)": {
+      "label": "App shell",
+      "tech": "React, React Router",
+      "desc": "Entry point and routes"
+    },
+    "web/api": {
+      "label": "API client",
+      "tech": "fetch, TanStack Query",
+      "desc": "HTTP client, queries and API types"
+    },
+    "web/auth": {
+      "label": "Auth",
+      "tech": "React context",
+      "desc": "Session state and route guard"
+    },
+    "web/components": {
+      "label": "Shared UI",
+      "tech": "React, Tailwind",
+      "desc": "Layout, toasts and UI primitives"
+    },
+    "web/help": {
+      "label": "Help",
+      "tech": "React",
+      "desc": "In-app guide and info tips"
+    },
+    "web/lib": {
+      "label": "Lib",
+      "tech": "TypeScript",
+      "desc": "Dates, day table and subject helpers"
+    },
+    "web/pages": {
+      "label": "Pages",
+      "tech": "React, TanStack Query",
+      "desc": "Day, timetable, history, guide, landing pages"
+    }
+  }
+}
