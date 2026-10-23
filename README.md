@@ -32,6 +32,24 @@ npm run dev
 
 Open http://localhost:5173. In dev the login page shows a dev-only "Dev login" button that signs in as `dev@asendus.app` without Google. It does not exist in production builds.
 
+## Dev container (sandbox for Claude Code)
+
+`.devcontainer/` runs Java 25, Node 22 and Claude Code in Docker, with Postgres as a separate service. Claude runs as a non-root user with no sudo, so it can use `--permission-mode bypassPermissions`. Stop the API and web dev servers on your machine first, because the container uses the same ports (5173, 8080).
+
+```bash
+npm install -g @devcontainers/cli
+devcontainer up --workspace-folder .
+
+# Each in its own terminal
+devcontainer exec --workspace-folder . bash -c 'cd api && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev'
+devcontainer exec --workspace-folder . bash -c 'cd web && npm run dev -- --host 0.0.0.0'
+devcontainer exec --workspace-folder . bash   # then: claude --permission-mode bypassPermissions
+```
+
+There is no Docker inside the container, so the Testcontainers API tests (`./mvnw verify`) run on the host or in CI. After changing `.devcontainer/`, rebuild with `devcontainer up --workspace-folder . --remove-existing-container`.
+
+The repo is mounted in, so Claude can change any file in it, including `.git/hooks`. Check `ls .git/hooks` before committing on the host. Outbound network is open.
+
 ## Tests
 
 ```bash

@@ -1,0 +1,12 @@
+{
+  "name": "asendus",
+  "dockerComposeFile": "compose.yaml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/substitution-finder",
+  "remoteUser": "dev",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "22" },
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
+  },
+  "postCreateCommand": "cd web && npm ci"
+}
