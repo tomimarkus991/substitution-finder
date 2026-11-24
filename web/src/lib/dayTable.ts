@@ -1,16 +1,14 @@
 import type { Day } from '../api/types'
-import { shortDate } from './dates'
 import { subjectName } from './subjects'
 
-export const HEADER = ['Kuupäev', 'Puuduva õpetaja nimi', 'Klass', 'Mitmes tund', 'Tunni asendaja nimi', 'Õppeaine']
+export const HEADER = ['Puuduva õpetaja nimi', 'Klass', 'Mitmes tund', 'Tunni asendaja nimi', 'Õppeaine']
 export type TableRow = string[]
 
 export function buildRows(day: Day): TableRow[] {
-  const date = shortDate(day.date)
   return [...day.absences]
     .sort((a, b) => a.teacherName.localeCompare(b.teacherName, 'et'))
     .flatMap(a => [...a.rows].sort((x, y) => x.period - y.period).map(r => [
-      date, a.teacherName, r.classes, String(r.period),
+      a.teacherName, r.classes, String(r.period),
       [r.substituteNames, r.freeText].filter(Boolean).join(' / '),
       r.dutyLabel ?? subjectName(r.subject),
     ]))
