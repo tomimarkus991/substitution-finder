@@ -114,4 +114,5 @@ export interface TeacherStats {
   lessonCovers: number
   dutyCovers: number
   totalCovers: number
+  missedLessons: number
 }

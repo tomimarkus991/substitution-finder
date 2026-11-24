@@ -31,8 +31,18 @@ class StatsControllerTest extends IntegrationTest {
 
     /** Marks the teacher absent all Friday; returns the ids of their lesson rows in period order. */
     List<Long> absentRows(String key) throws Exception {
+        return postAbsence("{\"teacherKey\":\"" + key + "\"}");
+    }
+
+    /** Marks the teacher absent for the given Friday periods; returns the ids of their lesson rows. */
+    List<Long> absentRows(String key, int fromPeriod, int toPeriod) throws Exception {
+        return postAbsence("{\"teacherKey\":\"" + key + "\",\"fromPeriod\":" + fromPeriod
+                + ",\"toPeriod\":" + toPeriod + "}");
+    }
+
+    private List<Long> postAbsence(String json) throws Exception {
         String body = mockMvc.perform(post("/days/{d}/absences", FRI).header("Authorization", bearer())
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"teacherKey\":\"" + key + "\"}"))
+                        .contentType(MediaType.APPLICATION_JSON).content(json))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         return JsonPath.<List<Number>>read(body, "$.rows[*].id").stream().map(Number::longValue).toList();
@@ -79,6 +89,7 @@ class StatsControllerTest extends IntegrationTest {
             assertThat(r.get("lessonCovers")).isEqualTo(0);
             assertThat(r.get("dutyCovers")).isEqualTo(0);
             assertThat(r.get("totalCovers")).isEqualTo(0);
+            assertThat(r.get("missedLessons")).isEqualTo(0);
         });
         assertThat(row(ABSENT).get("name")).isEqualTo("Taimi Pärnpuu");
     }
@@ -142,6 +153,30 @@ class StatsControllerTest extends IntegrationTest {
         assertThat(list.getLast().get("key")).isEqualTo(busy);
         List<String> zeroNames = list.subList(0, list.size() - 1).stream().map(r -> (String) r.get("name")).toList();
         assertThat(zeroNames).isSortedAccordingTo(com.asendus.api.timetable.TeacherKey.DISPLAY_ORDER);
+    }
+
+    @Test
+    void oneLessonAbsenceIsOneMissedLesson() throws Exception {
+        absentRows(ABSENT, 1, 1);
+
+        assertThat(row(ABSENT)).containsEntry("missedLessons", 1);
+    }
+
+    @Test
+    void fullDayAbsenceMissesTheTeachersLessonsThatWeekday() throws Exception {
+        absentRows(ABSENT);
+
+        assertThat(row(ABSENT)).containsEntry("missedLessons", 5);
+        assertThat(statsList()).filteredOn(r -> !ABSENT.equals(r.get("key")))
+                .allSatisfy(r -> assertThat(r.get("missedLessons")).isEqualTo(0));
+    }
+
+    @Test
+    void missedDutyIsNotAMissedLesson() throws Exception {
+        List<Long> rows = absentRows(ABSENT);
+        jdbc.update("update substitution set duty_label = 'ÕVT 10:45–11:15 · pos 4' where id = ?", rows.get(0));
+
+        assertThat(row(ABSENT)).containsEntry("missedLessons", 4);
     }
 
     @Test

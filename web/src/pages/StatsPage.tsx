@@ -33,6 +33,7 @@ export default function StatsPage() {
                 <th className="px-3 py-2 text-right font-semibold">Tunnid</th>
                 <th className="px-3 py-2 text-right font-semibold">Valved</th>
                 <th className="px-3 py-2 text-right font-semibold">Kokku</th>
+                <th className="px-3 py-2 text-right font-semibold">Puudutud tunnid</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -42,6 +43,7 @@ export default function StatsPage() {
                   <td className="px-3 py-2 text-right tabular-nums">{t.lessonCovers}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{t.dutyCovers}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{t.totalCovers}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{t.missedLessons}</td>
                 </tr>
               ))}
             </tbody>

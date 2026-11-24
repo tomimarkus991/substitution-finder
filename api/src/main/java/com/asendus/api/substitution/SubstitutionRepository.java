@@ -21,4 +21,17 @@ public interface SubstitutionRepository extends JpaRepository<Substitution, Long
             group by k.key
             """, nativeQuery = true)
     List<Object[]> countCoversByTeacherKey();
+
+    /**
+     * [teacher key, missed lessons] for every key with at least one: the rows without a duty label
+     * that belong to that teacher's own absences. Missed duties are not counted.
+     */
+    @Query(value = """
+            select a.teacher_key, count(*)
+            from substitution s
+            join absence a on a.id = s.absence_id
+            where s.duty_label is null
+            group by a.teacher_key
+            """, nativeQuery = true)
+    List<Object[]> countMissedLessonsByTeacherKey();
 }
