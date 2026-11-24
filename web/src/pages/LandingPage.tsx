@@ -2,6 +2,7 @@ import { GoogleLogin } from '@react-oauth/google'
 import { motion, useReducedMotion } from 'motion/react'
 import { Navigate, useNavigate } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
+import logo from '../assets/logo.svg' // imported so the built file name changes with the logo
 import { useToast } from '../components/Toast'
 import { ShaderCanvas } from '../components/shader/ShaderCanvas'
 import contours from '../components/shader/contours.frag?raw'
@@ -34,7 +35,7 @@ export default function LandingPage() {
       <ShaderCanvas fragment={contours} colors={{ bg: '#14285f' }} className="absolute inset-0 h-full w-full" />
 
       <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center gap-3 px-5 py-5">
-        <img src="/favicon.svg" alt="" className="h-10 w-10" />
+        <img src={logo} alt="" className="h-10 w-10" />
         <span className="font-display text-2xl font-extrabold tracking-tight">Asendused</span>
       </header>
 

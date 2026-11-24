@@ -1,5 +1,6 @@
 import { Link, Outlet, useLocation } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
+import logo from '../assets/logo.svg' // imported so the built file name changes with the logo
 import { todayIso } from '../lib/dates'
 import HelpButton from '../help/HelpButton'
 import { RealButton } from './ui/RealButton'
@@ -20,7 +21,7 @@ export default function Layout() {
         {/* Phones: logo + logout on top, links underneath. Wider screens: one row. */}
         <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5">
           <Link to={today} className="mr-1 flex items-center gap-2" aria-label="Asendused">
-            <img src="/favicon.svg" alt="" className="h-9 w-9" />
+            <img src={logo} alt="" className="h-9 w-9" />
             <span className="font-display text-xl font-extrabold tracking-tight text-secondary">Asendused</span>
           </Link>
           <SlidingNav
