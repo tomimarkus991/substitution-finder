@@ -2,7 +2,9 @@ package com.asendus.api.substitution;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.*;
 
 public interface SubstitutionRepository extends JpaRepository<Substitution, Long> {
@@ -11,14 +13,18 @@ public interface SubstitutionRepository extends JpaRepository<Substitution, Long
     /**
      * [teacher key, lesson covers, duty covers] for every key that is a substitute on at least one row.
      * A shared row counts once for each of its substitutes; a row with no substitutes counts for nobody.
+     * Only absences dated from {@code from} to {@code to}, both inclusive; a null bound is open.
      */
     @Query(value = """
             select k.key,
                    count(distinct s.id) filter (where s.duty_label is null),
                    count(distinct s.id) filter (where s.duty_label is not null)
             from substitution s
+            join absence a on a.id = s.absence_id
             cross join unnest(s.substitute_keys) as k(key)
+            where (cast(:from as date) is null or a.date >= cast(:from as date))
+              and (cast(:to as date) is null or a.date <= cast(:to as date))
             group by k.key
             """, nativeQuery = true)
-    List<Object[]> countCoversByTeacherKey();
+    List<Object[]> countCoversByTeacherKey(@Param("from") LocalDate from, @Param("to") LocalDate to);
 }
