@@ -160,7 +160,7 @@ function Stats({ rows }: { rows: TeacherStats[] }) {
           {ranked.map(r => (
             <li key={r.key} className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-base">
               <span className="w-32 shrink-0 truncate font-semibold sm:w-44" title={r.name}>{r.name}</span>
-              {/* Lessons, then duties, each bar followed by its own count; 5rem stays free for the counts */}
+              {/* Lessons, then duties, each bar followed by its own count; 6.5rem stays free for the outlined counts */}
               <span className="flex min-w-0 flex-1 items-center gap-1.5 text-sm font-bold tabular-nums">
                 {r.totalCovers === 0 && <span className="text-text-caption">0</span>}
                 {r.lessonCovers > 0 && <Bar value={r.lessonCovers} max={max} color={LESSON} />}
@@ -229,9 +229,12 @@ function Bar({ value, max, color }: { value: number; max: number; color: string 
       <span
         aria-hidden
         className="h-4 shrink-0 rounded-r-[4px]"
-        style={{ width: `calc((100% - 5rem) * ${value / max})`, background: color }}
+        style={{ width: `calc((100% - 6.5rem) * ${value / max})`, background: color }}
       />
-      <span aria-hidden className="mr-1.5">{value}</span>
+      {/* Outlined in its bar's colour, so it is clear which count is lessons and which duties */}
+      <span aria-hidden className="mr-1.5 rounded-md border-2 bg-white px-1.5 leading-5" style={{ borderColor: color }}>
+        {value}
+      </span>
     </>
   )
 }
