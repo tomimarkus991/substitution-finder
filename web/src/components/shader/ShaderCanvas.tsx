@@ -224,7 +224,10 @@ export const ShaderCanvas = ({ fragment, className, colors, stillTime = 23 }: Pr
     const onResize = () => {
       if (lost) return;
       resize();
-      if (!rafId) draw(); // keep the paused or still frame sharp
+      // Resizing clears the canvas to black, and the next animation frame comes after this paint: redraw now,
+      // or the page flashes dark. Phones resize the viewport while scrolling (the address bar shows and hides)
+      // and while swiping things across the screen.
+      draw();
     };
 
     canvas.addEventListener("webglcontextlost", onLost);

@@ -55,6 +55,11 @@
   body {
     @apply bg-surface-bg text-text-primary antialiased;
   }
+  /* Nothing sliding in from the side can widen the page and make a phone zoom out */
+  html,
+  body {
+    overflow-x: clip;
+  }
 }
 
 .print-only { display: none; }
