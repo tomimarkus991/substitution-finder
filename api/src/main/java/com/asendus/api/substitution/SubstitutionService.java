@@ -243,13 +243,21 @@ public class SubstitutionService {
         return out;
     }
 
-    /** FREE, ASK_FIRST, PARALLEL; then the row's subject first; a duty in the period last; fewest today; name. */
+    /**
+     * FREE, ASK_FIRST, PARALLEL; then the row's subject first; a duty in the period last; fewest periods taught
+     * that day (own lessons plus substitutions); fewest substitutions today; name.
+     */
     private static Comparator<CandidateDto> candidateOrder(Set<String> sameSubject) {
         return Comparator.comparing(CandidateDto::status)
                 .thenComparing(c -> !sameSubject.contains(c.key()))
                 .thenComparing(c -> !c.duties().isEmpty())
+                .thenComparingLong(SubstitutionService::busyPeriods)
                 .thenComparingInt(CandidateDto::todayCount)
                 .thenComparing(CandidateDto::name, TeacherKey.DISPLAY_ORDER);
+    }
+
+    private static long busyPeriods(CandidateDto c) {
+        return c.day().stream().filter(s -> s.kind() == SlotKind.LESSON || s.kind() == SlotKind.SUBSTITUTING).count();
     }
 
     /** The row being filled; it must be on that date and in that period. */

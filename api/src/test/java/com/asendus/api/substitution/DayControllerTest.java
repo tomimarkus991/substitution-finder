@@ -361,7 +361,7 @@ class DayControllerTest extends IntegrationTest {
     }
 
     @Test
-    void candidatesAreSortedByStatusThenTodayCountThenName() throws Exception {
+    void candidatesAreSortedByStatusThenBusyPeriodsThenTodayCountThenName() throws Exception {
         // Give one FREE-at-3 teacher a substitution in another period so their todayCount is 1
         List<String> free3 = fridayTeachers(ps -> !ps.isEmpty() && !ps.contains(3) && !ps.contains(5)
                 && Collections.min(ps) < 3 && Collections.max(ps) > 5);
@@ -374,13 +374,21 @@ class DayControllerTest extends IntegrationTest {
         List<Map<String, Object>> list = JsonPath.read(body, "$");
         Comparator<Map<String, Object>> order = Comparator
                 .comparing((Map<String, Object> c) -> Availability.valueOf((String) c.get("status")))
+                .thenComparingInt(DayControllerTest::busyPeriods)
                 .thenComparingInt(c -> ((Number) c.get("todayCount")).intValue())
                 .thenComparing(c -> (String) c.get("name"), ET);
         assertThat(list).isSortedAccordingTo(order);
         assertThat(JsonPath.<List<Integer>>read(body, byKey(busy) + ".todayCount")).containsExactly(1);
-        // busy is the last FREE entry since everyone else FREE has todayCount 0
-        List<String> freeKeys = JsonPath.read(body, "$[?(@.status=='FREE')].key");
-        assertThat(freeKeys.getLast()).isEqualTo(busy);
+        // Fewer periods taught that day comes first, so the list is not all one busy count
+        assertThat(list.stream().map(DayControllerTest::busyPeriods).distinct().count()).isGreaterThan(1);
+    }
+
+    /** Periods a candidate teaches that day: own lessons plus substitutions. */
+    @SuppressWarnings("unchecked")
+    private static int busyPeriods(Map<String, Object> candidate) {
+        return (int) ((List<Map<String, Object>>) candidate.get("day")).stream()
+                .filter(s -> s.get("kind").equals("LESSON") || s.get("kind").equals("SUBSTITUTING"))
+                .count();
     }
 
     @Test
