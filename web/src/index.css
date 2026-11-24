@@ -1,12 +1,40 @@
 @import "tailwindcss";
 
-/* Design tokens borrowed from karatekool (tailwind.config.js), recoloured for a school */
+/* Palette roles from the design-library skill; see docs/superpowers/specs/2026-11-24-design.md */
 @theme {
   --font-sans: "Catamaran", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Catamaran", ui-sans-serif, system-ui, sans-serif;
 
-  --color-surface-bg: #f7f8fa;
-  --color-text-primary: #393939;
-  --color-text-caption: #6e6e6e;
+  /* Base: light, tinted blue-grey so the app isn't paper white */
+  --color-base: #eaf0f7;
+  --color-surface: #ffffff;
+  --color-surface-raised: #dde6f1;
+  --color-text: #1f2a44;
+  --color-text-muted: #5b6478;
+  --color-border: #cfdbe9;
+
+  /* Brand: school sky blue, navy ink, sunny yellow */
+  --color-primary: #59adf6;
+  --color-primary-dark: #2a85d4;
+  --color-primary-soft: #a8d5fb;
+  --color-secondary: #1e3a8a;
+  --color-secondary-dark: #14285f;
+  --color-secondary-soft: #6585df;
+  --color-highlight: #f6de5c;
+
+  --background-image-hot: linear-gradient(60deg, var(--color-highlight), var(--color-primary-soft), var(--color-highlight));
+  --shadow-primary: 0 4px 12px 0 color-mix(in srgb, var(--color-primary) 30%, transparent);
+  --animate-text: text 5s ease infinite;
+
+  @keyframes text {
+    0%, 100% { background-size: 200% 200%; background-position: left center; }
+    50% { background-size: 200% 200%; background-position: right center; }
+  }
+
+  /* Older names, kept so existing pages pick up the new palette */
+  --color-surface-bg: var(--color-base);
+  --color-text-primary: var(--color-text);
+  --color-text-caption: var(--color-text-muted);
 
   --color-casual-green: #42d68c;
   --color-casual-green-darker: #30a46a;
