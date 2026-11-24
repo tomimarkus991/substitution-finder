@@ -1,5 +1,6 @@
 package com.asendus.api;
 
+import com.asendus.api.duty.DutyService;
 import com.asendus.api.model.AppUser;
 import com.asendus.api.service.AuthService;
 import com.asendus.api.substitution.Availability;
@@ -21,14 +22,18 @@ import org.springframework.stereotype.Component;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
- * Makes sure the dev user exists, and that the school day the app opens on (today, or Monday on a weekend) has
- * sample absences: one for periods 3–7 with some substitutes picked, one for the whole day with none.
+ * Makes sure the dev user exists, and that the school day the app opens on (today, or Monday on a weekend) and
+ * the 10 school days before it have sample absences: one for periods 3–7 with its break duties and every other
+ * lesson covered, one for the whole day with none. Teachers with a break duty are absent first, so the
+ * Statistika page has duty covers too.
  */
 @Slf4j
 @Component
@@ -39,17 +44,30 @@ public class DataSeeder implements CommandLineRunner {
     private final AuthService authService;
     private final SubstitutionService substitutionService;
     private final TimetableService timetableService;
+    private final DutyService dutyService;
+
+    /** School days seeded, the last one being the day the app opens on. */
+    static final int SEEDED_DAYS = 11;
 
     @Override
     public void run(String... args) {
         AppUser devUser = authService.getOrCreateDevUser();
         log.info("[DataSeeder] Dev user ready: {} (id {}).", devUser.getEmail(), devUser.getId());
-        seedDay(schoolDay(LocalDate.now()), devUser.getId());
+        seedRecent(schoolDay(LocalDate.now()), SEEDED_DAYS, devUser.getId());
     }
 
     /** The date itself on a weekday, the next Monday on a weekend. */
     static LocalDate schoolDay(LocalDate date) {
         return date.getDayOfWeek().getValue() > 5 ? date.with(TemporalAdjusters.next(DayOfWeek.MONDAY)) : date;
+    }
+
+    /** Seeds `days` school days (Monday to Friday) ending on `last`, oldest first. */
+    void seedRecent(LocalDate last, int days, Long userId) {
+        List<LocalDate> dates = new ArrayList<>();
+        for (LocalDate d = last; dates.size() < days; d = d.minusDays(1)) {
+            if (d.getDayOfWeek().getValue() <= 5) dates.add(d);
+        }
+        dates.reversed().forEach(d -> seedDay(d, userId));
     }
 
     /** Adds the sample absences, unless there is no active timetable or the day already has absences. */
@@ -60,11 +78,19 @@ public class DataSeeder implements CommandLineRunner {
         }
         if (!substitutionService.day(date).absences().isEmpty()) return;
 
+        int weekday = date.getDayOfWeek().getValue();
         Set<String> placeholders = timetableService.placeholderKeys();
-        List<String> busiest = timetableService.lessonsOn(date.getDayOfWeek().getValue()).entrySet().stream()
+        // Teachers with a break duty in periods 3–7 first, so the partial absence gets duty rows
+        Set<String> onDuty = dutyService.dutiesOn(weekday).entrySet().stream()
+                .filter(e -> e.getValue().stream().anyMatch(d -> d.getPeriod() >= 3))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+        List<String> busiest = timetableService.lessonsOn(weekday).entrySet().stream()
                 .filter(e -> !placeholders.contains(e.getKey().getTeacherKey()))
-                .sorted(Comparator.comparingLong((Map.Entry<Teacher, List<Lesson>> e) -> lessonsFrom3(e.getValue()))
-                        .reversed().thenComparing(e -> e.getKey().getTeacherKey()))
+                .sorted(Comparator.comparing((Map.Entry<Teacher, List<Lesson>> e) -> !onDuty.contains(e.getKey().getTeacherKey()))
+                        .thenComparing(Comparator.comparingLong((Map.Entry<Teacher, List<Lesson>> e) -> lessonsFrom3(e.getValue()))
+                                .reversed())
+                        .thenComparing(e -> e.getKey().getTeacherKey()))
                 .map(e -> e.getKey().getTeacherKey())
                 .limit(2)
                 .toList();
@@ -75,10 +101,10 @@ public class DataSeeder implements CommandLineRunner {
 
         AbsenceDto partial = substitutionService.createAbsence(date, new CreateAbsenceRequest(busiest.get(0), 3, 7), userId);
         substitutionService.createAbsence(date, new CreateAbsenceRequest(busiest.get(1), 1, 7), userId);
-        // Fill every other row, so the day shows both picked and open rows
-        List<SubstitutionDto> rows = partial.rows();
-        for (int i = 0; i < rows.size(); i += 2) {
-            SubstitutionDto row = rows.get(i);
+        // Cover every break duty and every other lesson, so the day shows both picked and open rows
+        int lesson = 0;
+        for (SubstitutionDto row : partial.rows()) {
+            if (row.dutyLabel() == null && lesson++ % 2 == 1) continue;
             substitutionService.candidates(date, row.period(), row.id()).stream()
                     .filter(c -> c.status() == Availability.FREE)
                     .map(CandidateDto::key)
