@@ -3,9 +3,12 @@ package com.asendus.api.substitution;
 import com.asendus.api.timetable.TeacherKey;
 import com.asendus.api.timetable.TimetableService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -28,10 +31,19 @@ public class StatsService {
             .comparingInt(TeacherStatsDto::lessonCovers)
             .thenComparing(TeacherStatsDto::name, TeacherKey.DISPLAY_ORDER);
 
+    /** Open ends of the range; Postgres dates cover both. */
+    private static final LocalDate EARLIEST = LocalDate.of(1, 1, 1);
+    private static final LocalDate LATEST = LocalDate.of(9999, 12, 31);
+
+    /** Covers on absences from `from` to `to`, both inclusive; a null end is open. */
     @Transactional(readOnly = true)
-    public List<TeacherStatsDto> stats() {
+    public List<TeacherStatsDto> stats(LocalDate from, LocalDate to) {
+        if (from != null && to != null && from.isAfter(to)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Algus peab olema enne lõppu");
+        }
         Map<String, Covers> covers = new HashMap<>();
-        for (Object[] r : substitutionRepository.countCoversByTeacherKey()) {
+        for (Object[] r : substitutionRepository.countCoversByTeacherKey(
+                from == null ? EARLIEST : from, to == null ? LATEST : to)) {
             covers.put((String) r[0], new Covers(((Number) r[1]).intValue(), ((Number) r[2]).intValue()));
         }
         Set<String> placeholders = timetableService.placeholderKeys();

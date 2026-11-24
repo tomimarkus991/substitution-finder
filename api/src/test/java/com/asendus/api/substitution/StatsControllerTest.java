@@ -144,6 +144,33 @@ class StatsControllerTest extends IntegrationTest {
         assertThat(zeroNames).isSortedAccordingTo(com.asendus.api.timetable.TeacherKey.DISPLAY_ORDER);
     }
 
+    int totalBetween(String key, String query) throws Exception {
+        String body = mockMvc.perform(get("/stats" + query).header("Authorization", bearer()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        List<Integer> totals = JsonPath.read(body, "$[?(@.key=='" + key + "')].totalCovers");
+        return totals.getFirst();
+    }
+
+    @Test
+    void fromAndToCountOnlyCoversOnAbsencesInThatRangeInclusive() throws Exception {
+        List<Long> rows = absentRows(ABSENT); // on FRI, 2026-09-04
+        String a = others(ABSENT).get(0);
+        pick(rows.get(0), "", a);
+
+        assertThat(totalBetween(a, "?from=2026-09-04&to=2026-09-04")).isEqualTo(1);
+        assertThat(totalBetween(a, "?from=2026-09-01&to=2026-09-30")).isEqualTo(1);
+        assertThat(totalBetween(a, "?from=2026-09-05&to=2026-09-30")).isEqualTo(0);
+        assertThat(totalBetween(a, "?from=2026-08-01&to=2026-09-03")).isEqualTo(0);
+        assertThat(totalBetween(a, "?from=2026-09-05")).isEqualTo(0);
+        assertThat(totalBetween(a, "?to=2026-09-04")).isEqualTo(1);
+    }
+
+    @Test
+    void fromAfterToIsBadRequest() throws Exception {
+        mockMvc.perform(get("/stats?from=2026-09-05&to=2026-09-04").header("Authorization", bearer()))
+                .andExpect(status().isBadRequest());
+    }
+
     @Test
     void noActiveTimetableGivesEmptyList() throws Exception {
         jdbc.execute("TRUNCATE timetable_version CASCADE");
