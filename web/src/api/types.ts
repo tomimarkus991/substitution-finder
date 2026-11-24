@@ -106,3 +106,13 @@ export interface DutySummary {
   warnings: string[]
   unresolved: UnresolvedDuty[]
 }
+
+// Stats
+export interface TeacherStats {
+  key: string
+  name: string
+  lessonCovers: number
+  dutyCovers: number
+  totalCovers: number
+  missedLessons: number
+}

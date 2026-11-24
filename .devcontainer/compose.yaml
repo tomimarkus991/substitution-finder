@@ -1,0 +1,45 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # PID 1 runs as root only to hand the named volumes to dev; shells and Claude run as dev
+    command: >
+      sh -c "chown dev:dev /home/dev/.claude /home/dev/.m2 /workspaces/substitution-finder/web/node_modules
+      && exec sleep infinity"
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      # Keeps the Claude login in the claude-config volume, so it survives rebuilds
+      CLAUDE_CONFIG_DIR: /home/dev/.claude
+      # No Docker inside: use the postgres service below instead of api/compose.yaml
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/asendus
+      SPRING_DATASOURCE_USERNAME: asendus
+      SPRING_DATASOURCE_PASSWORD: secret
+    volumes:
+      - ..:/workspaces/substitution-finder:cached
+      - claude-config:/home/dev/.claude
+      - m2:/home/dev/.m2
+      # Linux node_modules, kept apart from the macOS one on the host
+      - node-modules:/workspaces/substitution-finder/web/node_modules
+    ports:
+      - "127.0.0.1:5173:5173"
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: asendus
+      POSTGRES_USER: asendus
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  claude-config:
+  m2:
+  node-modules:
+  pgdata:

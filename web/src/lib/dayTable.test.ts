@@ -20,11 +20,11 @@ const day: Day = {
 describe('day table', () => {
   it('sorts by absent teacher then period and fills the columns like her Word table', () => {
     expect(buildRows(day)).toEqual([
-      ['4.09', 'Janell Randmaa', '2.3', '2', 'Raina Kiik', 'eesti keel'],
-      ['4.09', 'Janell Randmaa', '2.3', '5', 'Merike Utt', 'eesti keel'],
-      ['4.09', 'Taimi Pärnpuu', '4R', '2', 'Ragnar Põldma / Aivi Rentel', 'eesti keel'],
-      ['4.09', 'Taimi Pärnpuu', '4D', '4', 'Eleriin Hirv / tulevad hiljem', 'loodus'],
-      ['4.09', 'Taimi Pärnpuu', '6M', '6', 'Koju', 'ajalugu'],
+      ['Janell Randmaa', '2.3', '2', 'Raina Kiik', 'eesti keel'],
+      ['Janell Randmaa', '2.3', '5', 'Merike Utt', 'eesti keel'],
+      ['Taimi Pärnpuu', '4R', '2', 'Ragnar Põldma / Aivi Rentel', 'eesti keel'],
+      ['Taimi Pärnpuu', '4D', '4', 'Eleriin Hirv / tulevad hiljem', 'loodus'],
+      ['Taimi Pärnpuu', '6M', '6', 'Koju', 'ajalugu'],
     ])
   })
 
@@ -36,19 +36,19 @@ describe('day table', () => {
       ]},
     ]}
     const rows = buildRows(d)
-    expect(rows[0][5]).toBe('matemaatika')
-    expect(rows[1][2]).toBe('I klassid')
-    expect(rows[1][5]).toBe('ÕVT 10:45–11:15 · pos 4')
+    expect(rows[0][4]).toBe('matemaatika')
+    expect(rows[1][1]).toBe('I klassid')
+    expect(rows[1][4]).toBe('ÕVT 10:45–11:15 · pos 4')
   })
 
   it('renders an HTML table with the header and escapes text', () => {
-    const html = toHtml([['4.09', 'A <b>', '1', '1', '', 'x']])
+    const html = toHtml([['A <b>', '1', '1', '', 'x']])
     expect(html).toContain('>Puuduva õpetaja nimi</th>')
     expect(html).toContain('A &lt;b&gt;')
     expect(html.startsWith('<table')).toBe(true)
   })
 
   it('renders tab-separated plain text', () => {
-    expect(toPlainText([['4.09', 'A', '1', '1', 'B', 'x']]).split('\n')[1]).toBe('4.09\tA\t1\t1\tB\tx')
+    expect(toPlainText([['A', '1', '1', 'B', 'x']]).split('\n')[1]).toBe('A\t1\t1\tB\tx')
   })
 })

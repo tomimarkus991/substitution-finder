@@ -21,3 +21,12 @@ export const shiftSchoolDay = (iso: string, dir: 1 | -1) => {
 
 /** "Reede 4.09.2026" */
 export const longDate = (iso: string) => `${weekdayName(iso)} ${shortDate(iso)}.${iso.slice(0, 4)}`
+
+/** First day of the month the date is in. */
+export const monthStart = (iso: string) => `${iso.slice(0, 7)}-01`
+
+/** The most recent 1 September on or before the date. */
+export const schoolYearStart = (iso: string) => {
+  const year = Number(iso.slice(0, 4))
+  return `${Number(iso.slice(5, 7)) >= 9 ? year : year - 1}-09-01`
+}

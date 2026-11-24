@@ -13,6 +13,7 @@ import DayPage from './pages/DayPage'
 import TimetablePage from './pages/TimetablePage'
 import HistoryPage from './pages/HistoryPage'
 import GuidePage from './pages/GuidePage'
+import StatsPage from './pages/StatsPage'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -28,6 +29,7 @@ createRoot(document.getElementById('root')!).render(
                     <Route path="/paev/:date" element={<DayPage />} />
                     <Route path="/tunniplaan" element={<TimetablePage />} />
                     <Route path="/ajalugu" element={<HistoryPage />} />
+                    <Route path="/statistika" element={<StatsPage />} />
                     <Route path="/opetus" element={<GuidePage />} />
                   </Route>
                 </Route>

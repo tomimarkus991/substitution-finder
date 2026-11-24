@@ -5,3 +5,4 @@ api/target/
 web/node_modules/
 web/dist/
 web/.env.local
+docs/c4/.extract.json
