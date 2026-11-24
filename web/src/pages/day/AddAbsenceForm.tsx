@@ -5,8 +5,8 @@ import type { Absence, TeacherSummary } from '../../api/types'
 import { Card } from '../../components/ui/Card'
 import { RealButton } from '../../components/ui/RealButton'
 import InfoTip from '../../help/InfoTip'
+import PeriodSelect from './PeriodSelect'
 
-const PERIODS = [1, 2, 3, 4, 5, 6, 7]
 const MAX_MATCHES = 8
 
 /** Lowercase without diacritics, so "parn" finds "Pärnpuu". */
@@ -107,14 +107,3 @@ export default function AddAbsenceForm({ date, teachers, absentKeys }: Props) {
 }
 
 const label = (t: TeacherSummary) => (t.placeholder ? `${t.displayName} (koht)` : t.displayName)
-
-function PeriodSelect({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
-  return (
-    <label className="flex flex-1 flex-col text-sm font-semibold text-text-caption sm:flex-none">
-      {label}
-      <select value={value} onChange={e => onChange(Number(e.target.value))} className="field mt-1">
-        {PERIODS.map(p => <option key={p} value={p}>{p}. tund</option>)}
-      </select>
-    </label>
-  )
-}

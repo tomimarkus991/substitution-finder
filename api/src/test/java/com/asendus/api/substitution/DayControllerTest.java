@@ -192,6 +192,80 @@ class DayControllerTest extends IntegrationTest {
         assertThat(jdbc.queryForObject("select count(*) from substitution where absence_id = ?", Long.class, id)).isZero();
     }
 
+    // ---------- changing an absence's periods ----------
+
+    ResultActions patchAbsence(long id, String json) throws Exception {
+        return mockMvc.perform(patch("/absences/{id}", id).header("Authorization", bearer())
+                .contentType(MediaType.APPLICATION_JSON).content(json));
+    }
+
+    /** Absence 3–7 for Pärnpuu Taimi with a substitute on period 3; returns [absence id, period-3 row id]. */
+    long[] absenceWithSubstituteOnPeriod3() throws Exception {
+        String body = absent("pärnpuu taimi", 3, 7);
+        long rowId = ((Number) JsonPath.<List<Object>>read(body, "$.rows[?(@.period==3)].id").getFirst()).longValue();
+        putSubstitution(rowId, "{\"substituteKeys\":[\"teesalu lea\"],\"freeText\":\"\"}").andExpect(status().isOk());
+        return new long[] {id(body, "$.id"), rowId};
+    }
+
+    @Test
+    void wideningAnAbsenceKeepsSubstitutesAndAddsTheNewPeriods() throws Exception {
+        long[] ids = absenceWithSubstituteOnPeriod3();
+        patchAbsence(ids[0], "{\"fromPeriod\":2,\"toPeriod\":7}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fromPeriod").value(2))
+                .andExpect(jsonPath("$.toPeriod").value(7))
+                .andExpect(jsonPath("$.rows[*].period", contains(2, 3, 4, 6)))
+                .andExpect(jsonPath("$.rows[0].classes").value("5D"))
+                .andExpect(jsonPath("$.rows[0].substituteKeys").isEmpty())
+                .andExpect(jsonPath("$.rows[1].id").value(ids[1]))
+                .andExpect(jsonPath("$.rows[1].substituteKeys", contains("teesalu lea")));
+        mockMvc.perform(get("/days/{d}", FRI).header("Authorization", bearer()))
+                .andExpect(jsonPath("$.absences[0].rows[*].period", contains(2, 3, 4, 6)));
+    }
+
+    @Test
+    void narrowingAnAbsenceRemovesRowsOutsideTheRange() throws Exception {
+        long[] ids = absenceWithSubstituteOnPeriod3();
+        patchAbsence(ids[0], "{\"fromPeriod\":3,\"toPeriod\":4}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rows[*].period", contains(3, 4)))
+                .andExpect(jsonPath("$.rows[0].substituteKeys", contains("teesalu lea")));
+        assertThat(jdbc.queryForObject("select count(*) from substitution where absence_id = ?", Long.class, ids[0]))
+                .isEqualTo(2);
+    }
+
+    @Test
+    void wideningAndNarrowingAtOnce() throws Exception {
+        long[] ids = absenceWithSubstituteOnPeriod3();
+        patchAbsence(ids[0], "{\"fromPeriod\":1,\"toPeriod\":5}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rows[*].period", contains(1, 2, 3, 4)))
+                .andExpect(jsonPath("$.rows[2].id").value(ids[1]))
+                .andExpect(jsonPath("$.rows[2].substituteKeys", contains("teesalu lea")));
+    }
+
+    @Test
+    void unchangedRangeKeepsEveryRow() throws Exception {
+        long[] ids = absenceWithSubstituteOnPeriod3();
+        patchAbsence(ids[0], "{\"fromPeriod\":3,\"toPeriod\":7}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rows[*].period", contains(3, 4, 6)))
+                .andExpect(jsonPath("$.rows[0].id").value(ids[1]));
+    }
+
+    @Test
+    void changingAnAbsenceRejectsBadInput() throws Exception {
+        long id = id(absent("pärnpuu taimi", 3, 7), "$.id");
+        patchAbsence(id, "{\"fromPeriod\":5,\"toPeriod\":4}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Algustund ei saa olla pärast lõputundi"));
+        patchAbsence(id, "{\"fromPeriod\":0,\"toPeriod\":4}").andExpect(status().isBadRequest());
+        patchAbsence(id, "{\"fromPeriod\":1}").andExpect(status().isBadRequest());
+        patchAbsence(999999, "{\"fromPeriod\":1,\"toPeriod\":7}")
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Puudujat ei leitud"));
+    }
+
     // ---------- day and history ----------
 
     @Test

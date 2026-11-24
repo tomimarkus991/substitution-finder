@@ -5,6 +5,7 @@ import com.asendus.api.substitution.DayDtos.CandidateDto;
 import com.asendus.api.substitution.DayDtos.CreateAbsenceRequest;
 import com.asendus.api.substitution.DayDtos.DayDto;
 import com.asendus.api.substitution.DayDtos.SubstitutionDto;
+import com.asendus.api.substitution.DayDtos.UpdateAbsenceRequest;
 import com.asendus.api.substitution.DayDtos.UpdateSubstitutionRequest;
 import com.asendus.api.util.JwtUtils;
 import jakarta.validation.Valid;
@@ -41,6 +42,12 @@ public class DayController {
                                     @PathVariable @DateTimeFormat(iso = ISO.DATE) LocalDate date,
                                     @Valid @RequestBody CreateAbsenceRequest request) {
         return substitutionService.createAbsence(date, request, JwtUtils.extractUserId(jwt));
+    }
+
+    /** Changes the absence's periods: rows still in range keep their substitutes, new periods get empty rows. */
+    @PatchMapping("/absences/{id}")
+    public AbsenceDto updateAbsence(@PathVariable Long id, @Valid @RequestBody UpdateAbsenceRequest request) {
+        return substitutionService.updateAbsence(id, request);
     }
 
     @DeleteMapping("/absences/{id}")

@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import type { Absence, Substitution } from '../../api/types'
 import { RealButton } from '../../components/ui/RealButton'
+import { lostCovers } from '../../lib/absenceRange'
 import { cn } from '../../lib/cn'
 import { subjectName } from '../../lib/subjects'
 import CandidatePicker from './CandidatePicker'
+import PeriodSelect from './PeriodSelect'
 
 type Props = {
   date: string
@@ -15,12 +18,14 @@ type Props = {
 
 export default function AbsenceCard({ date, absence, openRow, onOpenRow }: Props) {
   const qc = useQueryClient()
+  const [editing, setEditing] = useState(false)
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ['day', date] })
+    qc.invalidateQueries({ queryKey: ['candidates', date] })
+  }
   const remove = useMutation({
     mutationFn: () => api<void>(`/absences/${absence.id}`, { method: 'DELETE' }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['day', date] })
-      qc.invalidateQueries({ queryKey: ['candidates', date] })
-    },
+    onSuccess: refresh,
   })
   const partial = absence.fromPeriod !== 1 || absence.toPeriod !== 7
 
@@ -37,6 +42,13 @@ export default function AbsenceCard({ date, absence, openRow, onOpenRow }: Props
           </p>
         </div>
         <button
+          onClick={() => setEditing(e => !e)}
+          aria-expanded={editing}
+          className="min-h-11 px-2 text-sm font-semibold text-casual-sky-blue-darker hover:underline"
+        >
+          Muuda tunde
+        </button>
+        <button
           onClick={() => { if (confirm('Eemaldada puuduja ja tema asendused?')) remove.mutate() }}
           disabled={remove.isPending}
           className="min-h-11 px-2 text-sm font-semibold text-casual-red-darker hover:underline disabled:opacity-50"
@@ -44,6 +56,10 @@ export default function AbsenceCard({ date, absence, openRow, onOpenRow }: Props
           Eemalda
         </button>
       </header>
+
+      {editing && (
+        <PeriodEditor absence={absence} onDone={() => setEditing(false)} onSaved={() => { setEditing(false); refresh() }} />
+      )}
 
       {absence.rows.length === 0 ? (
         <p className="px-5 pb-5 text-text-caption">Sel päeval tunde pole</p>
@@ -62,6 +78,52 @@ export default function AbsenceCard({ date, absence, openRow, onOpenRow }: Props
         </ul>
       )}
     </section>
+  )
+}
+
+type EditorProps = { absence: Absence; onDone: () => void; onSaved: () => void }
+
+/** Changes the absence's periods; asks first when that would remove rows that already have a substitute. */
+function PeriodEditor({ absence, onDone, onSaved }: EditorProps) {
+  const [from, setFrom] = useState(absence.fromPeriod)
+  const [to, setTo] = useState(absence.toPeriod)
+  const save = useMutation({
+    mutationFn: () =>
+      api<Absence>(`/absences/${absence.id}`, { method: 'PATCH', body: JSON.stringify({ fromPeriod: from, toPeriod: to }) }),
+    onSuccess: onSaved,
+  })
+  const rangeOk = from <= to
+  const unchanged = from === absence.fromPeriod && to === absence.toPeriod
+
+  const submit = () => {
+    const lost = lostCovers(absence.rows, from, to)
+    if (lost.length > 0) {
+      const lines = lost.map(r => `${r.period}. tund ${r.classes}: ${assignment(r)}`).join('\n')
+      if (!confirm(`Need asendused kustuvad:\n${lines}\n\nKas muuta tunde?`)) return
+    }
+    save.mutate()
+  }
+
+  return (
+    <div className="mx-3 mb-3 rounded-2xl bg-sky-50 p-3">
+      <div className="flex flex-wrap items-end gap-3">
+        <PeriodSelect label="Alates tunnist" value={from} onChange={setFrom} />
+        <PeriodSelect label="Kuni tunnini" value={to} onChange={setTo} />
+        <div className="flex w-full gap-2 sm:ml-auto sm:w-auto">
+          <RealButton variant="light" size="sm" className="flex-1 sm:flex-none" onClick={onDone}>Tühista</RealButton>
+          <RealButton
+            variant="sky"
+            size="sm"
+            className="flex-1 sm:flex-none"
+            onClick={submit}
+            disabled={!rangeOk || unchanged || save.isPending}
+          >
+            Salvesta
+          </RealButton>
+        </div>
+      </div>
+      {!rangeOk && <p className="mt-2 text-sm font-medium text-casual-red-darker">Algustund ei saa olla pärast lõputundi</p>}
+    </div>
   )
 }
 

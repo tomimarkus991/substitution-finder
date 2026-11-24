@@ -9,6 +9,7 @@ import com.asendus.api.substitution.DayDtos.CreateAbsenceRequest;
 import com.asendus.api.substitution.DayDtos.DayDto;
 import com.asendus.api.substitution.DayDtos.DaySlot;
 import com.asendus.api.substitution.DayDtos.SubstitutionDto;
+import com.asendus.api.substitution.DayDtos.UpdateAbsenceRequest;
 import com.asendus.api.substitution.DayDtos.UpdateSubstitutionRequest;
 import com.asendus.api.timetable.Lesson;
 import com.asendus.api.timetable.Teacher;
@@ -22,6 +23,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.*;
+import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 
 @Service
@@ -66,9 +68,7 @@ public class SubstitutionService {
         int weekday = schoolWeekday(date);
         int from = request.fromPeriod() != null ? request.fromPeriod() : FIRST_PERIOD;
         int to = request.toPeriod() != null ? request.toPeriod() : LAST_PERIOD;
-        if (from > to) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Algustund ei saa olla pärast lõputundi");
-        }
+        checkRange(from, to);
         Teacher teacher = timetableService.activeTeacher(TeacherKey.of(request.teacherKey()))
                 .orElseThrow(() -> timetableService.hasActiveVersion()
                         ? new ResponseStatusException(HttpStatus.NOT_FOUND, "Õpetajat ei leitud")
@@ -83,20 +83,62 @@ public class SubstitutionService {
                 .teacherName(timetableService.displayName(teacher))
                 .fromPeriod((short) from).toPeriod((short) to).createdBy(userId).build());
 
-        List<Lesson> lessons = timetableService.lessonsOf(teacher, weekday);
-        List<Substitution> newRows = new ArrayList<>(lessons.stream()
-                .filter(l -> l.getPeriod() >= from && l.getPeriod() <= to)
-                .map(l -> Substitution.builder().absenceId(absence.getId()).period(l.getPeriod())
+        List<Substitution> rows = substitutionRepository.saveAll(
+                newRows(teacher, weekday, absence.getId(), p -> from <= p && p <= to));
+        return toDto(absence, rows);
+    }
+
+    /**
+     * Moves the absence to the new period range. Rows still inside it keep their substitutes; rows outside it are
+     * removed; the teacher's lessons and break duties in periods newly covered get empty rows from the active
+     * timetable and duty schedule.
+     */
+    @Transactional
+    public AbsenceDto updateAbsence(Long id, UpdateAbsenceRequest request) {
+        Absence absence = absenceRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Puudujat ei leitud"));
+        int from = request.fromPeriod(), to = request.toPeriod();
+        checkRange(from, to);
+        int oldFrom = absence.getFromPeriod(), oldTo = absence.getToPeriod();
+
+        List<Substitution> rows = substitutionRepository.findByAbsenceIdInOrderByPeriod(List.of(id));
+        List<Substitution> outside = rows.stream().filter(r -> r.getPeriod() < from || r.getPeriod() > to).toList();
+        substitutionRepository.deleteAll(outside);
+        List<Substitution> kept = new ArrayList<>(rows);
+        kept.removeAll(outside);
+
+        if (from < oldFrom || to > oldTo) {
+            Teacher teacher = timetableService.activeTeacher(absence.getTeacherKey())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                            "Õpetajat pole aktiivses tunniplaanis, tunde ei saa lisada"));
+            kept.addAll(substitutionRepository.saveAll(newRows(teacher, schoolWeekday(absence.getAbsenceDate()),
+                    id, p -> from <= p && p <= to && (p < oldFrom || p > oldTo))));
+        }
+        absence.setFromPeriod((short) from);
+        absence.setToPeriod((short) to);
+        return toDto(absenceRepository.save(absence), kept);
+    }
+
+    private static void checkRange(int from, int to) {
+        if (from > to) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Algustund ei saa olla pärast lõputundi");
+        }
+    }
+
+    /** Empty rows for the teacher's lessons and break duties that weekday in the periods that match. */
+    private List<Substitution> newRows(Teacher teacher, int weekday, Long absenceId, IntPredicate inRange) {
+        List<Substitution> out = new ArrayList<>(timetableService.lessonsOf(teacher, weekday).stream()
+                .filter(l -> inRange.test(l.getPeriod()))
+                .map(l -> Substitution.builder().absenceId(absenceId).period(l.getPeriod())
                         .classes(l.getClasses()).subject(l.getSubject()).build())
                 .toList());
         dutyService.dutiesOn(weekday).getOrDefault(teacher.getTeacherKey(), List.of()).stream()
-                .filter(d -> d.getPeriod() >= from && d.getPeriod() <= to)
-                .map(d -> Substitution.builder().absenceId(absence.getId()).period(d.getPeriod())
+                .filter(d -> inRange.test(d.getPeriod()))
+                .map(d -> Substitution.builder().absenceId(absenceId).period(d.getPeriod())
                         .classes(d.getClassGroup()).subject(DutyLabels.kindName(d.getKind()))
                         .dutyLabel(DutyLabels.labelWithPosition(d)).build())
-                .forEach(newRows::add);
-        List<Substitution> rows = substitutionRepository.saveAll(newRows);
-        return toDto(absence, rows);
+                .forEach(out::add);
+        return out;
     }
 
     @Transactional

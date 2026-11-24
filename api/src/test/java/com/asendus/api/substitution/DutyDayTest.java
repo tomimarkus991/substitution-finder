@@ -88,6 +88,16 @@ class DutyDayTest extends IntegrationTest {
                 .andExpect(jsonPath("$.rows[?(@.dutyLabel != null)]", empty()));
     }
 
+    @Test void wideningAnAbsenceOverADutyAddsItsRow() throws Exception {
+        String body = postAbsence(FRI, "{\"teacherKey\":\"" + onDuty + "\",\"fromPeriod\":4,\"toPeriod\":7}")
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        long id = ((Number) JsonPath.read(body, "$.id")).longValue();
+        mockMvc.perform(patch("/absences/{id}", id).header("Authorization", bearer())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"fromPeriod\":3,\"toPeriod\":7}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath(LABEL_ROWS + ".period", contains(3)));
+    }
+
     @Test void candidateWithADutyGetsALabelAndSortsLastInItsGroup() throws Exception {
         String json = candidatesJson(3);
         List<Map<String, Object>> all = JsonPath.read(json, "$[*]");

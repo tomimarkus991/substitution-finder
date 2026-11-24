@@ -27,6 +27,9 @@ public final class DayDtos {
                                        @Min(1) @Max(7) Integer fromPeriod,
                                        @Min(1) @Max(7) Integer toPeriod) {}
 
+    public record UpdateAbsenceRequest(@NotNull @Min(1) @Max(7) Integer fromPeriod,
+                                       @NotNull @Min(1) @Max(7) Integer toPeriod) {}
+
     /**
      * duties: labels of the candidate's break duties in the requested period. day: their 7 periods.
      * streak: periods in a row they'd work if they take this one. parallelLesson: for PARALLEL, their own lesson
