@@ -7,7 +7,7 @@ import { cn } from '../../lib/cn'
 import { subjectName } from '../../lib/subjects'
 import InfoTip from '../../help/InfoTip'
 import DayStrip from './DayStrip'
-import { LONG_STREAK, SLOT_STYLE } from './daySlotStyle'
+import { CURRENT_SLOT, LONG_STREAK, SLOT_STYLE } from './daySlotStyle'
 
 const QUICK_TEXTS = ['Koju', 'Tulevad hiljem', 'Klass kokku', 'Iseseisev töö']
 
@@ -78,6 +78,19 @@ export default function CandidatePicker({ date, row, onClose }: Props) {
       {candidates.isLoading && <p className="text-sm text-text-caption">Laen vabu õpetajaid…</p>}
       {candidates.data && (
         <>
+          {others.length > 0 && (
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-white/70 px-3 py-2 text-xs text-text-caption">
+              <Swatch kind="LESSON" /> tund
+              <Swatch kind="SUBSTITUTING" /> asendab
+              <Swatch kind="DUTY" /> valve
+              <Swatch kind="EMPTY" /> vaba
+              <span className={cn('inline-flex h-3.5 w-3.5 items-center justify-center rounded border-2 text-[8px]', SLOT_STYLE.EMPTY, CURRENT_SLOT)}>★</span> see tund
+              <InfoTip label="Päeva riba">
+                Ruudud on õpetaja selle päeva 1.–7. tund. „→ N järjest“ näitab, mitu tundi järjest tal tuleks, kui ta selle
+                tunni võtab. Alates {LONG_STREAK}-st on see oranž.
+              </InfoTip>
+            </p>
+          )}
           <Group
             title="Vaba"
             dot="bg-casual-green"
@@ -110,19 +123,6 @@ export default function CandidatePicker({ date, row, onClose }: Props) {
             <p className="flex items-center gap-2 text-sm text-text-caption">
               <span className="h-3 w-3 rounded-full bg-violet-500" /> on sel ajal vahetunni valves
               <InfoTip label="Vahetunni valve">Õpetajal on selle tunni ajal õue- või söögivahetunni valve. Kui ta asendab, peab valve jaoks kellegi teise leidma.</InfoTip>
-            </p>
-          )}
-          {others.length > 0 && (
-            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-caption">
-              <Swatch kind="LESSON" /> tund
-              <Swatch kind="SUBSTITUTING" /> asendab
-              <Swatch kind="DUTY" /> valve
-              <Swatch kind="EMPTY" /> vaba
-              <span>★ see tund</span>
-              <InfoTip label="Päeva riba">
-                Ruudud on õpetaja selle päeva 1.–7. tund. „→ N järjest“ näitab, mitu tundi järjest tal tuleks, kui ta selle
-                tunni võtab. Alates {LONG_STREAK}-st on see oranž.
-              </InfoTip>
             </p>
           )}
         </>
@@ -171,31 +171,35 @@ function Group({ title, hint, dot, tip, empty, children }: GroupProps) {
 }
 
 function CandidateButton({ candidate: c, period, onClick }: { candidate: Candidate; period: number; onClick: () => void }) {
+  // White card; the status lives in the pressable bottom edge and the hover outline
   const tone = {
-    FREE: 'border-casual-green-outline border-b-casual-green bg-green-50 hover:bg-green-100',
-    ASK_FIRST: 'border-casual-orange-outline border-b-casual-orange bg-orange-50 hover:bg-orange-100',
-    PARALLEL: 'border-teal-300 border-b-teal-500 bg-teal-50 hover:bg-teal-100',
+    FREE: 'border-b-casual-green hover:border-casual-green-outline hover:border-b-casual-green',
+    ASK_FIRST: 'border-b-casual-orange hover:border-casual-orange-outline hover:border-b-casual-orange',
+    PARALLEL: 'border-b-teal-500 hover:border-teal-300 hover:border-b-teal-500',
   }[c.status]
+  const about = c.parallelLesson ? `annab ${c.parallelLesson}` : c.subjects.map(subjectName).join(', ')
   return (
     <button
       onClick={onClick}
       className={cn(
-        'min-h-11 w-full rounded-2xl border-2 border-b-4 px-4 py-2 text-left transition-transform hover:-translate-y-0.5 active:translate-y-0.5 sm:w-auto',
+        'min-h-11 w-full rounded-2xl border-2 border-b-[5px] border-slate-200 bg-white px-4 py-2.5 text-left shadow-sm',
+        'transition-all hover:-translate-y-0.5 hover:shadow-md active:translate-y-0.5 active:duration-75 sm:w-auto',
         tone,
       )}
     >
-      <span className="block font-bold">{c.name}</span>
+      <span className="flex flex-wrap items-baseline gap-x-2">
+        <span className="font-bold">{c.name}</span>
+        {about && <span className="text-xs text-text-caption">{about}</span>}
+        {c.todayCount > 0 && (
+          <span className="rounded-full bg-casual-sky-blue/15 px-2 py-0.5 text-xs font-bold text-casual-sky-blue-darker">
+            täna {c.todayCount} {c.todayCount === 1 ? 'asendus' : 'asendust'}
+          </span>
+        )}
+      </span>
       <DayStrip day={c.day} period={period} streak={c.streak} />
       {c.duties.map(d => (
-        <span key={d} className="mt-1 mr-1 inline-block rounded-full bg-violet-500 px-2 py-0.5 text-xs font-bold text-white">{d}</span>
+        <span key={d} className="mt-1.5 mr-1 inline-block rounded-full bg-violet-500 px-2 py-0.5 text-xs font-bold text-white">{d}</span>
       ))}
-      {(c.parallelLesson || c.subjects.length > 0 || c.todayCount > 0) && (
-        <span className="block text-xs text-text-caption">
-          {c.parallelLesson ? `annab ${c.parallelLesson}` : c.subjects.map(subjectName).join(', ')}
-          {(c.parallelLesson || c.subjects.length > 0) && c.todayCount > 0 && ' · '}
-          {c.todayCount > 0 && <span className="font-bold text-text-primary">täna {c.todayCount} {c.todayCount === 1 ? 'asendus' : 'asendust'}</span>}
-        </span>
-      )}
     </button>
   )
 }
@@ -218,5 +222,5 @@ function ToggleButton({ selected, onClick, children }: { selected: boolean; onCl
 }
 
 function Swatch({ kind }: { kind: SlotKind }) {
-  return <span className={cn('inline-block h-3 w-3 rounded border-2', SLOT_STYLE[kind])} />
+  return <span className={cn('inline-block h-3.5 w-3.5 rounded border-2', SLOT_STYLE[kind])} />
 }

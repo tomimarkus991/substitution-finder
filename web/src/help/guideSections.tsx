@@ -76,7 +76,7 @@ export function SubstituteHelp() {
         oma tekst.
       </p>
       <p>
-        Iga nime all on tema päev: hallid ruudud on tunnid, sinised juba võetud asendused, lillad valved ja ★ on see
+        Iga nime all on tema päev: tumesinised ruudud on tunnid, helesinised juba võetud asendused, lillad valved ja ★ on see
         tund. <b>→ N järjest</b> näitab, mitu tundi järjest tal tuleks. Alates viiest on see oranž. Hiirega ruudu peal
         näed klassi ja ainet.
       </p>
