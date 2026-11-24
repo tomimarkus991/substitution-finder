@@ -1,11 +1,16 @@
+import { useState } from 'react'
 import { Link } from 'react-router'
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { fetchActiveTimetable } from '../api/queries'
 import type { TeacherStats } from '../api/types'
 import { Card } from '../components/ui/Card'
+import { type DateRange, type DateRangeLabels, DateRangePicker } from '../components/ui/DateRangePicker'
 import { LetterDecryptor } from '../components/ui/LetterDecryptor'
 import { PageTitle } from '../components/ui/PageTitle'
+import { cn } from '../lib/cn'
+import { todayIso } from '../lib/dates'
+import { activePreset, halfYearStart, schoolYearStart } from '../lib/schoolPeriods'
 
 // Validated with the dataviz palette script against white: CVD ΔE 9.3, both in the lightness band.
 // Lessons sit just under 3:1 contrast, so every bar carries its figure as text and the table stays available.
@@ -13,13 +18,66 @@ const LESSON = '#3b9be6'
 const LESSON_TRACK = '#d4ebfd'
 const DUTY = '#8b5cf6' // the same violet as duties on the day page
 
+const ET_LABELS: DateRangeLabels = {
+  name: 'Ajavahemik',
+  any: 'Kogu aeg',
+  only: d => `Ainult ${d}`,
+  between: (a, b) => `${a} – ${b}`,
+  since: d => `Alates ${d}`,
+  until: d => `Kuni ${d}`,
+  previousMonth: 'Eelmine kuu',
+  nextMonth: 'Järgmine kuu',
+  wholeMonth: m => `Vali kogu ${m}`,
+  pickFirst: 'Vali esimene päev või vajuta kuu nimele, et valida terve kuu.',
+  pickSecond: 'Nüüd vali viimane päev, või sama päev uuesti, kui tahad ainult seda päeva.',
+}
+
 export default function StatsPage() {
+  const [range, setRangeState] = useState<DateRange>({ from: null, to: null })
+  /** The preset button pressed last; cleared when the calendar sets the range. */
+  const [pressed, setPressed] = useState<string | null>(null)
+  const setRange = (next: DateRange, preset: string | null = null) => {
+    setRangeState(next)
+    setPressed(preset)
+  }
+  const today = todayIso()
+  const presets = [
+    { label: 'See poolaasta', range: { from: halfYearStart(today), to: today } },
+    { label: 'See õppeaasta', range: { from: schoolYearStart(today), to: today } },
+  ]
+  const active = activePreset(presets, range, pressed)
+  const params = new URLSearchParams()
+  if (range.from) params.set('from', range.from)
+  if (range.to) params.set('to', range.to)
   const timetable = useQuery({ queryKey: ['timetable'], queryFn: fetchActiveTimetable })
-  const stats = useQuery({ queryKey: ['stats'], queryFn: () => api<TeacherStats[]>('/stats') })
+  const stats = useQuery({
+    queryKey: ['stats', range.from, range.to],
+    queryFn: () => api<TeacherStats[]>(`/stats${params.size ? `?${params}` : ''}`),
+    placeholderData: keepPreviousData, // keep the charts while another range loads
+  })
 
   return (
     <div className="space-y-5">
       <PageTitle hint="Mitu korda keegi on asendanud. Kõige rohkem asendanud on eespool.">Statistika</PageTitle>
+      {timetable.data && (
+        <div className="flex flex-wrap items-center gap-2">
+          <DateRangePicker
+            value={range}
+            onChange={r => setRange(r)}
+            locale="et-EE"
+            labels={ET_LABELS}
+            className="w-full max-w-xs"
+          />
+          {presets.map(p => (
+            <Preset key={p.label} active={active === p.label} onClick={() => setRange(p.range, p.label)}>
+              {p.label}
+            </Preset>
+          ))}
+          {(range.from || range.to) && (
+            <Preset active={false} onClick={() => setRange({ from: null, to: null })}>Kogu aeg</Preset>
+          )}
+        </div>
+      )}
       {(stats.isLoading || timetable.isLoading) && <p className="text-text-caption">Laen…</p>}
       {stats.isError && <p className="font-semibold text-casual-red-darker">Statistika laadimine ebaõnnestus</p>}
       {timetable.data === null && (
@@ -100,25 +158,15 @@ function Stats({ rows }: { rows: TeacherStats[] }) {
         </div>
         <ul className="mt-4 space-y-1">
           {ranked.map(r => (
-            <li key={r.key} className="group relative flex items-center gap-3 rounded-lg px-1 py-0.5 hover:bg-base">
+            <li key={r.key} className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-base">
               <span className="w-32 shrink-0 truncate font-semibold sm:w-44" title={r.name}>{r.name}</span>
-              <span className="flex h-4 flex-1 gap-[2px]" aria-hidden>
-                {r.lessonCovers > 0 && (
-                  <span className="rounded-r-[4px]" style={{ width: `${(r.lessonCovers / max) * 100}%`, background: LESSON }} />
-                )}
-                {r.dutyCovers > 0 && (
-                  <span className="rounded-r-[4px]" style={{ width: `${(r.dutyCovers / max) * 100}%`, background: DUTY }} />
-                )}
+              {/* Lessons, then duties, each bar followed by its own count; 5rem stays free for the counts */}
+              <span className="flex min-w-0 flex-1 items-center gap-1.5 text-sm font-bold tabular-nums">
+                {r.totalCovers === 0 && <span className="text-text-caption">0</span>}
+                {r.lessonCovers > 0 && <Bar value={r.lessonCovers} max={max} color={LESSON} />}
+                {r.dutyCovers > 0 && <Bar value={r.dutyCovers} max={max} color={DUTY} />}
               </span>
-              <span className="w-8 shrink-0 text-right font-bold tabular-nums">{r.totalCovers}</span>
               <span className="sr-only">: {r.lessonCovers} tundi, {r.dutyCovers} valvet</span>
-              {/* Hover breakdown */}
-              <span
-                aria-hidden
-                className="pointer-events-none absolute -top-8 right-10 z-10 hidden rounded-lg bg-text px-2.5 py-1 text-sm font-semibold whitespace-nowrap text-white shadow-lg group-hover:block"
-              >
-                {r.lessonCovers} tundi · {r.dutyCovers} valvet
-              </span>
             </li>
           ))}
         </ul>
@@ -152,6 +200,38 @@ function Stats({ rows }: { rows: TeacherStats[] }) {
           </table>
         </div>
       </details>
+    </>
+  )
+}
+
+/** A quick range next to the calendar; sky when it is the chosen range. */
+function Preset({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        'rounded-xl border-2 border-b-4 px-3 py-1.5 text-sm font-semibold transition-transform hover:-translate-y-0.5 active:translate-y-0.5',
+        active
+          ? 'border-casual-sky-blue-darker bg-casual-sky-blue text-white'
+          : 'border-slate-200 bg-white text-text-primary hover:bg-slate-50',
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
+function Bar({ value, max, color }: { value: number; max: number; color: string }) {
+  return (
+    <>
+      <span
+        aria-hidden
+        className="h-4 shrink-0 rounded-r-[4px]"
+        style={{ width: `calc((100% - 5rem) * ${value / max})`, background: color }}
+      />
+      <span aria-hidden className="mr-1.5">{value}</span>
     </>
   )
 }
