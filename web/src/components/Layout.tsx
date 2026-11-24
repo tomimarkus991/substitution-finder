@@ -30,6 +30,7 @@ export default function Layout() {
             </NavLink>
             <NavLink to="/tunniplaan" className={navLink}>Tunniplaan</NavLink>
             <NavLink to="/ajalugu" className={navLink}>Ajalugu</NavLink>
+            <NavLink to="/statistika" className={navLink}>Statistika</NavLink>
             <NavLink to="/opetus" className={navLink}>Õpetus</NavLink>
           </div>
           <RealButton variant="light" size="xs" className="ml-auto" onClick={logout}>
