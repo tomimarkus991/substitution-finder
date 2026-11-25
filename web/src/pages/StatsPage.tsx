@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { api } from '../api/client'
 import { fetchActiveTimetable } from '../api/queries'
 import type { TeacherStats } from '../api/types'
@@ -17,6 +18,7 @@ import { activePreset, halfYearStart, schoolYearStart } from '../lib/schoolPerio
 const LESSON = '#3b9be6'
 const LESSON_TRACK = '#d4ebfd'
 const DUTY = '#8b5cf6' // the same violet as duties on the day page
+const MISSED = '#ff695a' // casual-red, as absent teachers on the day page
 
 const ET_LABELS: DateRangeLabels = {
   name: 'Ajavahemik',
@@ -58,7 +60,7 @@ export default function StatsPage() {
 
   return (
     <div className="space-y-5">
-      <PageTitle hint="Mitu korda keegi on asendanud. Kõige rohkem asendanud on eespool.">Statistika</PageTitle>
+      <PageTitle hint="Mitu korda keegi on asendanud ja mitu tundi ise puudunud. Kõige rohkem on eespool.">Statistika</PageTitle>
       {timetable.data && (
         <div className="flex flex-wrap items-center gap-2">
           <DateRangePicker
@@ -102,6 +104,10 @@ function Stats({ rows }: { rows: TeacherStats[] }) {
   const max = Math.max(1, ...rows.map(r => r.totalCovers))
   // Most covers first; ties keep the API's name order (sort is stable)
   const ranked = [...rows].sort((a, b) => b.totalCovers - a.totalCovers)
+  const [showAll, setShowAll] = useState(false)
+  // 35% of the teachers show, the other 65% are collapsed
+  const shown = Math.ceil(ranked.length * 0.35)
+  const reduceMotion = useReducedMotion()
 
   return (
     <>
@@ -156,21 +162,49 @@ function Stats({ rows }: { rows: TeacherStats[] }) {
             <Key color={DUTY}>valved</Key>
           </p>
         </div>
-        <ul className="mt-4 space-y-1">
-          {ranked.map(r => (
-            <li key={r.key} className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-base">
-              <span className="w-32 shrink-0 truncate font-semibold sm:w-44" title={r.name}>{r.name}</span>
-              {/* Lessons, then duties, each bar followed by its own count; 6.5rem stays free for the outlined counts */}
-              <span className="flex min-w-0 flex-1 items-center gap-1.5 text-sm font-bold tabular-nums">
-                {r.totalCovers === 0 && <span className="text-text-caption">0</span>}
-                {r.lessonCovers > 0 && <Bar value={r.lessonCovers} max={max} color={LESSON} />}
-                {r.dutyCovers > 0 && <Bar value={r.dutyCovers} max={max} color={DUTY} />}
-              </span>
-              <span className="sr-only">: {r.lessonCovers} tundi, {r.dutyCovers} valvet</span>
-            </li>
-          ))}
+        <ul id="covers-list" className="mt-4 space-y-1">
+          {ranked.slice(0, shown).map(r => <CoverRow key={r.key} row={r} max={max} />)}
         </ul>
+        {/* The rest slides open; its rows rise in one after another */}
+        <AnimatePresence initial={false}>
+          {showAll && (
+            <motion.ul
+              key="rest"
+              className="mt-1 space-y-1 overflow-hidden"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: reduceMotion ? 0 : 0.5, ease: 'easeInOut' }}
+            >
+              {ranked.slice(shown).map((r, i) => (
+                <CoverRow key={r.key} row={r} max={max} rise={reduceMotion ? undefined : i} />
+              ))}
+            </motion.ul>
+          )}
+        </AnimatePresence>
+        {ranked.length > shown && (
+          <motion.button
+            type="button"
+            onClick={() => setShowAll(v => !v)}
+            aria-expanded={showAll}
+            aria-controls="covers-list"
+            whileHover={reduceMotion ? undefined : { scale: 1.05, transition: { duration: 0.2 } }}
+            whileTap={reduceMotion ? undefined : { scale: 0.9 }}
+            className="mx-auto mt-3 flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 font-semibold text-casual-sky-blue-darker hover:bg-slate-50"
+          >
+            {showAll ? 'Näita vähem' : `Näita kõiki (veel ${ranked.length - shown})`}
+            <motion.span
+              aria-hidden
+              animate={{ rotate: showAll ? 180 : 0 }}
+              transition={{ duration: reduceMotion ? 0 : 0.3, ease: 'easeInOut' }}
+            >
+              ▾
+            </motion.span>
+          </motion.button>
+        )}
       </Card>
+
+      <Missed rows={rows} />
 
       <details className="group rounded-3xl bg-white shadow-sm">
         <summary className="flex cursor-pointer list-none items-center justify-between rounded-3xl px-5 py-4 font-bold select-none hover:bg-slate-50">
@@ -185,6 +219,7 @@ function Stats({ rows }: { rows: TeacherStats[] }) {
                 <th className="px-3 py-2 text-right font-semibold">Tunnid</th>
                 <th className="px-3 py-2 text-right font-semibold">Valved</th>
                 <th className="px-3 py-2 text-right font-semibold">Kokku</th>
+                <th className="px-3 py-2 text-right font-semibold">Puudunud tunnid</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -194,6 +229,7 @@ function Stats({ rows }: { rows: TeacherStats[] }) {
                   <td className="px-3 py-2 text-right tabular-nums">{t.lessonCovers}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{t.dutyCovers}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{t.totalCovers}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{t.missedLessons}</td>
                 </tr>
               ))}
             </tbody>
@@ -201,6 +237,59 @@ function Stats({ rows }: { rows: TeacherStats[] }) {
         </div>
       </details>
     </>
+  )
+}
+
+/**
+ * One teacher's covers: lessons, then duties, each bar followed by its own count.
+ * rise: the row's place among those being revealed; it then rises in after the ones before it.
+ */
+function CoverRow({ row: r, max, rise }: { row: TeacherStats; max: number; rise?: number }) {
+  return (
+    <motion.li
+      className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-base"
+      initial={rise === undefined ? false : { opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut', delay: 0.1 + Math.min(rise ?? 0, 15) * 0.025 }}
+    >
+      <span className="w-32 shrink-0 truncate font-semibold sm:w-44" title={r.name}>{r.name}</span>
+      {/* 6.5rem stays free for the outlined counts */}
+      <span className="flex min-w-0 flex-1 items-center gap-1.5 text-sm font-bold tabular-nums">
+        {r.totalCovers === 0 && <span className="text-text-caption">0</span>}
+        {r.lessonCovers > 0 && <Bar value={r.lessonCovers} max={max} color={LESSON} />}
+        {r.dutyCovers > 0 && <Bar value={r.dutyCovers} max={max} color={DUTY} />}
+      </span>
+      <span className="sr-only">: {r.lessonCovers} tundi, {r.dutyCovers} valvet</span>
+    </motion.li>
+  )
+}
+
+/** Who missed the most lessons in the range, most first; teachers who missed none are left out. */
+function Missed({ rows }: { rows: TeacherStats[] }) {
+  const ranked = rows.filter(r => r.missedLessons > 0).sort((a, b) => b.missedLessons - a.missedLessons)
+  const max = Math.max(1, ...ranked.map(r => r.missedLessons))
+  return (
+    <Card>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-xl font-bold">Kes on kõige rohkem puudunud</h2>
+        <p className="text-sm font-semibold text-text-caption"><Key color={MISSED}>puudutud tunnid</Key></p>
+      </div>
+      {ranked.length === 0 ? (
+        <p className="mt-3 text-text-caption">Selles ajavahemikus pole keegi puudunud</p>
+      ) : (
+        <ul className="mt-4 space-y-1">
+          {ranked.map(r => (
+            <li key={r.key} className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-base">
+              <span className="w-32 shrink-0 truncate font-semibold sm:w-44" title={r.name}>{r.name}</span>
+              <span className="flex min-w-0 flex-1 items-center gap-1.5 text-sm font-bold tabular-nums">
+                <Bar value={r.missedLessons} max={max} color={MISSED} />
+              </span>
+              <span className="sr-only">: {r.missedLessons} puudutud tundi</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
   )
 }
 

@@ -165,6 +165,49 @@ class StatsControllerTest extends IntegrationTest {
         assertThat(totalBetween(a, "?to=2026-09-04")).isEqualTo(1);
     }
 
+    // ---------- missed lessons ----------
+
+    void absent(String key, int from, int to) throws Exception {
+        mockMvc.perform(post("/days/{d}/absences", FRI).header("Authorization", bearer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"teacherKey\":\"" + key + "\",\"fromPeriod\":" + from + ",\"toPeriod\":" + to + "}"))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void aOneLessonAbsenceIsOneMissedLesson() throws Exception {
+        absent(ABSENT, 2, 2); // period 2: 5D Lo
+        assertThat(row(ABSENT)).containsEntry("missedLessons", 1);
+        assertThat(row(others(ABSENT).get(0))).containsEntry("missedLessons", 0);
+    }
+
+    @Test
+    void aFullDayAbsenceMissesThatWeekdaysLessonsOnly() throws Exception {
+        absentRows(ABSENT); // periods 1, 2, 3, 4, 6; nothing in 5 and 7
+        assertThat(row(ABSENT)).containsEntry("missedLessons", 5);
+    }
+
+    @Test
+    void aMissedBreakDutyIsNotAMissedLesson() throws Exception {
+        List<Long> rows = absentRows(ABSENT);
+        jdbc.update("""
+                insert into substitution (absence_id, period, classes, subject, duty_label)
+                select absence_id, 3, 'I klassid', 'ÕVT', 'ÕVT 10:45–11:15 · pos 4' from substitution where id = ?""",
+                rows.getFirst());
+        assertThat(row(ABSENT)).containsEntry("missedLessons", 5);
+    }
+
+    @Test
+    void missedLessonsFollowTheDateRange() throws Exception {
+        absentRows(ABSENT); // on FRI, 2026-09-04
+        String body = mockMvc.perform(get("/stats?from=2026-09-05").header("Authorization", bearer()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(JsonPath.<List<Integer>>read(body, "$[?(@.key=='" + ABSENT + "')].missedLessons")).containsExactly(0);
+        body = mockMvc.perform(get("/stats?from=2026-09-04&to=2026-09-04").header("Authorization", bearer()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(JsonPath.<List<Integer>>read(body, "$[?(@.key=='" + ABSENT + "')].missedLessons")).containsExactly(5);
+    }
+
     @Test
     void fromAfterToIsBadRequest() throws Exception {
         mockMvc.perform(get("/stats?from=2026-09-05&to=2026-09-04").header("Authorization", bearer()))

@@ -114,4 +114,6 @@ export interface TeacherStats {
   lessonCovers: number
   dutyCovers: number
   totalCovers: number
+  /** Lessons of the teacher's own that fell inside their absences in the range. */
+  missedLessons: number
 }

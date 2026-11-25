@@ -27,4 +27,17 @@ public interface SubstitutionRepository extends JpaRepository<Substitution, Long
             group by k.key
             """, nativeQuery = true)
     List<Object[]> countCoversByTeacherKey(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    /**
+     * [teacher key, missed lessons] for every teacher with an absence dated in [from, to]: the lesson rows of
+     * their absences. Periods without a lesson have no row; break duty rows don't count.
+     */
+    @Query(value = """
+            select a.teacher_key, count(s.id)
+            from absence a
+            join substitution s on s.absence_id = a.id and s.duty_label is null
+            where a.date between :from and :to
+            group by a.teacher_key
+            """, nativeQuery = true)
+    List<Object[]> countMissedLessonsByTeacherKey(@Param("from") LocalDate from, @Param("to") LocalDate to);
 }
